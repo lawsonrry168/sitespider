@@ -1,8 +1,10 @@
 # 另一視窗繼續開發 — SiteSpider
 
-## 儲存庫
+## 儲存庫（已建立）
 
-推送完成後，在本機另開終端機或 Cursor 視窗：
+**https://github.com/lawsonrry168/sitespider**
+
+在本機另開終端機或 **Cursor → File → Open Folder** 選擇已 clone 的目錄：
 
 ```bash
 git clone https://github.com/lawsonrry168/sitespider.git
@@ -43,6 +45,24 @@ pip install -e ".[dev]"
 5. **與 cal 示範站分離**
    - SiteSpider 程式碼只在 **本 repo**
    - `cal` repo 的 `tools/seo-crawler/` 已標註遷移，勿再雙邊修改
+
+## 推送 CI 工作流程（若尚未上傳）
+
+本機可能有一個未推送的 commit（`.github/workflows/ci.yml`）。在終端機執行：
+
+```bash
+cd /path/to/sitespider
+gh auth refresh -s workflow
+git push origin main
+```
+
+若無該 commit，檔案已在工作目錄中則：
+
+```bash
+git add .github/workflows/ci.yml
+git commit -m "ci: add GitHub Actions workflow"
+git push origin main
+```
 
 ## 分支策略
 
