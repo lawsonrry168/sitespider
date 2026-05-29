@@ -1,0 +1,11 @@
+{
+  "name": "sitespider-lighthouse",
+  "private": true,
+  "description": "Optional Lighthouse CLI for SiteSpider",
+  "scripts": {
+    "lighthouse": "lighthouse"
+  },
+  "optionalDependencies": {
+    "lighthouse": "^12.0.0"
+  }
+}

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SiteSpider 控制台</title>
+  <style>
+    :root {
+      font-family: "Noto Sans TC", system-ui, sans-serif;
+      --bg: #0c1017;
+      --card: #151d2b;
+      --border: #2a3548;
+      --text: #e8edf5;
+      --muted: #8b9cb3;
+      --accent: #3dd6a0;
+      --warn: #f0b429;
+      --danger: #f07178;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.4rem; margin: 0 0 0.25rem; }
+    .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .card h2 { font-size: 0.95rem; margin: 0 0 1rem; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.35rem; }
+    input[type="text"], input[type="number"], select {
+      width: 100%; padding: 0.55rem 0.75rem; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text);
+      font-size: 0.95rem; margin-bottom: 0.75rem;
+    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+    .slider-row { margin-bottom: 1rem; }
+    .slider-row input[type="range"] { width: 100%; accent-color: var(--accent); }
+    .slider-val { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+    .checks { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+    .checks label { display: flex; align-items: center; gap: 0.4rem; margin: 0; color: var(--text); cursor: pointer; }
+    .checks input { width: auto; margin: 0; }
+    button {
+      background: var(--accent); color: #0a1210; border: none; border-radius: 8px;
+      padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 600; cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); margin-left: 0.5rem; }
+    .progress { height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; margin: 1rem 0 0.5rem; }
+    .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s; }
+    .status { font-size: 0.85rem; color: var(--muted); }
+    .log { font-family: ui-monospace, monospace; font-size: 0.8rem; max-height: 200px; overflow-y: auto; background: var(--bg); padding: 0.75rem; border-radius: 8px; margin-top: 1rem; }
+    .issues { list-style: none; padding: 0; margin: 0; }
+    .issues li { padding: 0.35rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    .badge { display: inline-block; padding: 0.1rem 0.45rem; border-radius: 4px; background: #3d3419; color: var(--warn); font-size: 0.75rem; margin-left: 0.5rem; }
+    a { color: var(--accent); }
+    .hidden { display: none; }
+    .warn-box { background: #2a2418; border: 1px solid var(--warn); color: var(--warn); padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>SiteSpider 控制台</h1>
+    <p class="sub">專業 SEO 站內爬蟲 · robots · sitemap · 並行 · Lighthouse</p>
+
+    <div id="lh-warn" class="warn-box hidden">
+      Lighthouse 需要 Node.js 與 <code>npm install -g lighthouse</code>，且僅支援 HTTP 模式。
+    </div>
+
+    <form id="crawl-form" class="card">
+      <h2>爬取設定</h2>
+      <div class="row">
+        <div>
+          <label for="mode">模式</label>
+          <select id="mode" name="mode">
+            <option value="file">檔案（直接讀 HTML）</option>
+            <option value="http">HTTP（本機伺服器）</option>
+          </select>
+        </div>
+        <div>
+          <label for="workers">並行執行緒</label>
+          <input type="number" id="workers" name="workers" min="1" max="16" value="4">
+        </div>
+      </div>
+      <label for="root">網站根目錄</label>
+      <input type="text" id="root" name="root" placeholder="/path/to/site">
+      <label for="url">起始 URL（HTTP 模式）</label>
+      <input type="text" id="url" name="url" value="http://localhost:8080/">
+
+      <div class="slider-row card" style="background:var(--bg);margin:1rem 0;padding:1rem;">
+        <label>最大爬取深度 <span class="slider-val" id="depth-val">10</span></label>
+        <input type="range" id="max_depth" name="max_depth" min="0" max="20" value="10">
+        <p class="status" style="margin:0.5rem 0 0">0 = 僅首頁；數字越大越深入追蹤內鏈</p>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="max_pages">最大頁數</label>
+          <input type="number" id="max_pages" name="max_pages" min="1" max="5000" value="500">
+        </div>
+        <div>
+          <label for="lighthouse_max">Lighthouse 頁數上限</label>
+          <input type="number" id="lighthouse_max" name="lighthouse_max" min="1" max="50" value="5">
+        </div>
+      </div>
+
+      <div class="checks">
+        <label><input type="checkbox" id="respect_robots" checked> 遵守 robots.txt</label>
+        <label><input type="checkbox" id="use_sitemap" checked> 使用 sitemap.xml 種子</label>
+        <label><input type="checkbox" id="check_external"> 檢查外部連結</label>
+        <label><input type="checkbox" id="lighthouse"> 執行 Lighthouse</label>
+      </div>
+
+      <button type="submit" id="btn-start">開始爬取</button>
+      <button type="button" class="secondary hidden" id="btn-report">開啟 HTML 報告</button>
+    </form>
+
+    <div id="progress-card" class="card hidden">
+      <h2>進度</h2>
+      <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+      <p class="status" id="progress-text">準備中…</p>
+      <div class="log" id="log"></div>
+    </div>
+
+    <div id="result-card" class="card hidden">
+      <h2>結果摘要</h2>
+      <div id="result-summary"></div>
+      <ul class="issues" id="issue-list"></ul>
+    </div>
+  </div>
+
+  <script>
+    const depthSlider = document.getElementById('max_depth');
+    const depthVal = document.getElementById('depth-val');
+    depthSlider.addEventListener('input', () => { depthVal.textContent = depthSlider.value; });
+
+    let currentJobId = null;
+    let pollTimer = null;
+
+    async function loadInfo() {
+      const res = await fetch('/api/info');
+      const info = await res.json();
+      document.getElementById('root').value = info.default_root || '';
+      if (!info.lighthouse_available) {
+        document.getElementById('lh-warn').classList.remove('hidden');
+      }
+    }
+
+    function log(msg) {
+      const el = document.getElementById('log');
+      el.textContent += msg + '\n';
+      el.scrollTop = el.scrollHeight;
+    }
+
+    async function pollJob(jobId) {
+      const res = await fetch('/api/job/' + jobId);
+      const job = await res.json();
+      const p = job.progress || {};
+      const total = Math.max(p.total || 1, 1);
+      const pct = Math.min(100, Math.round((p.done / total) * 100));
+      document.getElementById('progress-bar').style.width = pct + '%';
+      document.getElementById('progress-text').textContent =
+        (job.status === 'running' ? '爬取中' : job.status) + ' — ' + (p.current || '') + ` (${p.done || 0}/${total})`;
+
+      if (job.status === 'done') {
+        clearInterval(pollTimer);
+        document.getElementById('btn-start').disabled = false;
+        showResults(job);
+        if (job.report_dir) {
+          const btn = document.getElementById('btn-report');
+          btn.classList.remove('hidden');
+          btn.onclick = () => window.open('/reports/' + jobId + '/index.html', '_blank');
+        }
+        log('完成。');
+        return;
+      }
+      if (job.status === 'error') {
+        clearInterval(pollTimer);
+        document.getElementById('btn-start').disabled = false;
+        log('錯誤: ' + (job.error || 'unknown'));
+        return;
+      }
+    }
+
+    function showResults(job) {
+      const s = job.summary || {};
+      document.getElementById('result-card').classList.remove('hidden');
+      document.getElementById('result-summary').innerHTML =
+        `<p>已爬取 <strong>${s.pages || 0}</strong> 頁 · robots 封鎖 <strong>${s.blocked || 0}</strong> · 耗時 <strong>${(s.duration || 0).toFixed(2)}</strong>s</p>`;
+      const issues = s.issues || {};
+      const ul = document.getElementById('issue-list');
+      ul.innerHTML = '';
+      const labels = {
+        missing_meta_description: '缺少 meta description',
+        duplicate_title: '重複 title',
+        blocked_by_robots: 'robots.txt 封鎖',
+        orphan_page: '孤立頁',
+        lighthouse_seo_low: 'Lighthouse SEO 偏低',
+        lighthouse_perf_low: 'Lighthouse 效能偏低',
+      };
+      for (const [k, urls] of Object.entries(issues)) {
+        const li = document.createElement('li');
+        li.innerHTML = (labels[k] || k) + '<span class="badge">' + new Set(urls).size + '</span>';
+        ul.appendChild(li);
+      }
+      if (!Object.keys(issues).length) {
+        ul.innerHTML = '<li>未發現常見 SEO 問題</li>';
+      }
+    }
+
+    document.getElementById('crawl-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      document.getElementById('btn-start').disabled = true;
+      document.getElementById('progress-card').classList.remove('hidden');
+      document.getElementById('result-card').classList.add('hidden');
+      document.getElementById('btn-report').classList.add('hidden');
+      document.getElementById('log').textContent = '';
+
+      const payload = {
+        mode: document.getElementById('mode').value,
+        root: document.getElementById('root').value,
+        url: document.getElementById('url').value,
+        max_depth: parseInt(document.getElementById('max_depth').value, 10),
+        max_pages: parseInt(document.getElementById('max_pages').value, 10),
+        workers: parseInt(document.getElementById('workers').value, 10),
+        respect_robots: document.getElementById('respect_robots').checked,
+        use_sitemap: document.getElementById('use_sitemap').checked,
+        check_external: document.getElementById('check_external').checked,
+        lighthouse: document.getElementById('lighthouse').checked,
+        lighthouse_max: parseInt(document.getElementById('lighthouse_max').value, 10),
+      };
+
+      log('送出爬取任務…');
+      const res = await fetch('/api/crawl', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      currentJobId = data.job_id;
+      log('Job ID: ' + currentJobId);
+      pollTimer = setInterval(() => pollJob(currentJobId), 800);
+    });
+
+    loadInfo();
+  </script>
+</body>
+</html>
