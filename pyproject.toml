@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sitespider"
-version = "1.0.0"
+version = "1.24.0"
 description = "Professional SEO site crawler — link structure, on-page SEO, robots, sitemap, Lighthouse"
 readme = "README.md"
 license = { text = "MIT" }
@@ -29,16 +29,49 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0"]
+excel = ["openpyxl>=3.1.0"]
+yaml = ["PyYAML>=6.0"]
+browser = ["playwright>=1.40.0"]
+spelling = ["pyspellchecker>=0.8.0"]
+pdf = ["fpdf2>=2.7.0"]
+gsc = [
+  "google-api-python-client>=2.100.0",
+  "google-auth>=2.23.0",
+  "google-auth-oauthlib>=1.2.0",
+]
+dev = ["pytest>=7.0", "openpyxl>=3.1.0", "PyYAML>=6.0", "pyspellchecker>=0.8.0"]
+desktop = [
+  "pyinstaller>=6.3",
+  "pywebview>=5.0",
+  "openpyxl>=3.1.0",
+  "PyYAML>=6.0",
+]
+all = [
+  "openpyxl>=3.1.0",
+  "PyYAML>=6.0",
+  "playwright>=1.40.0",
+  "pyspellchecker>=0.8.0",
+  "google-api-python-client>=2.100.0",
+  "google-auth>=2.23.0",
+]
 
 [project.scripts]
 sitespider = "sitespider.cli:main"
 sitespider-serve = "sitespider.server:main"
 sitespider-check = "sitespider.check:main"
+sitespider-compare = "sitespider.compare_cli:main"
+sitespider-diff-csv = "sitespider.diff_csv_cli:main"
+sitespider-urls = "sitespider.urls_cli:main"
+sitespider-package = "sitespider.package_report:main"
+sitespider-multi-compare = "sitespider.multi_site_compare_cli:main"
+sitespider-schedule = "sitespider.schedule_cli:main"
+sitespider-desktop = "sitespider.desktop_launcher:main"
 
 [project.urls]
-Homepage = "https://github.com/sitespider/sitespider"
-Documentation = "https://github.com/sitespider/sitespider#readme"
+Homepage = "https://github.com/lawsonrry168/sitespider"
+Documentation = "https://github.com/lawsonrry168/sitespider#readme"
+Repository = "https://github.com/lawsonrry168/sitespider"
+Issues = "https://github.com/lawsonrry168/sitespider/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -1,0 +1,158 @@
+/* 24"/27" 顯示器舒適閱讀 — 字級與行距覆寫（載入於 theme.css 之後） */
+
+body {
+  font-size: var(--text-base);
+  line-height: var(--line-body);
+}
+
+/* ── 最小字級下限：標籤 / 輔助文字不低於 --text-xs（≈13px） ── */
+.brand-sub,
+.topnav a,
+.nav-more-toggle,
+.pipeline-sub,
+.side-section summary,
+.side-section .side-body label,
+.side-section .side-body select,
+.side-live-cell .lbl,
+.kbd-hint,
+.kbd-hint kbd,
+.tag,
+.chip,
+.pill,
+.progress-meta .status,
+.job-history-item .meta,
+.data-table th,
+.plan-features,
+.plan-ai,
+.plan-tagline,
+.report-nav a,
+.stat-chip,
+.delivery-tile em,
+.meta,
+table.data th,
+table.data code,
+.mono,
+.config-status,
+.url-preview,
+#usage-status,
+#ai-key-hint,
+.side-section .side-body .status {
+  font-size: var(--text-sm) !important;
+}
+
+/* ── 正文 / 說明 ── */
+.status,
+.lead,
+.card-lead,
+.page-intro,
+.pipeline-label,
+.side-section .side-body input,
+.side-section .side-body button.secondary,
+.side-live-cell .val,
+input,
+select,
+textarea,
+button,
+.pill-row .pill,
+.delivery-tile span,
+.delivery-tile strong,
+.report-main p,
+.report-main li,
+.md-body p,
+.md-body li {
+  font-size: var(--text-base);
+}
+
+/* ── 標題層級 ── */
+.brand-title,
+.pipeline-label {
+  font-size: var(--text-lg) !important;
+}
+
+.card h2,
+.card-hero h2,
+.side-section summary,
+.page-wrap h2 {
+  font-size: var(--text-xl) !important;
+}
+
+h1,
+.page-title,
+.report-main h1,
+.card-hero h2 {
+  font-size: var(--text-2xl) !important;
+  line-height: var(--line-snug);
+}
+
+.mission-bar #delivery-info,
+.mission-bar strong {
+  font-size: var(--text-lg);
+}
+
+/* ── 表單 hero 輸入 ── */
+.input-hero {
+  font-size: var(--text-lg) !important;
+}
+
+/* ── 側欄 / 表格可讀性 ── */
+.data-table td,
+.data-table th,
+#log,
+#job-history,
+.live-issue-list li {
+  font-size: var(--text-sm);
+  line-height: var(--line-body);
+}
+
+.data-table td {
+  font-size: var(--text-base);
+}
+
+/* ── 交付報告 GUI ── */
+.health-ring-lg {
+  font-size: var(--text-2xl) !important;
+  width: 6rem !important;
+  height: 6rem !important;
+}
+
+.score-hero {
+  font-size: var(--text-3xl) !important;
+}
+
+.delivery-tile {
+  padding: 1.1rem 1.15rem !important;
+}
+
+.delivery-tile strong {
+  font-size: var(--text-lg) !important;
+}
+
+.report-main,
+.md-page,
+.portal-wrap {
+  max-width: var(--content-readable);
+}
+
+.report-main.wide,
+.report-main--wide {
+  max-width: var(--content-max);
+}
+
+/* ── 大螢幕加寬可讀區（27" 常見 2560 寬） ── */
+@media (min-width: 1920px) {
+  .layout {
+    gap: 1.75rem;
+  }
+
+  .main-col {
+    max-width: calc(var(--content-max) - var(--sidebar-w));
+  }
+
+  .report-main {
+    padding: 2rem 2rem 3.5rem;
+  }
+
+  .page-wrap {
+    max-width: var(--content-max);
+  }
+}

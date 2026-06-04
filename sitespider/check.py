@@ -7,19 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-ISSUE_LABELS = {
-    "missing_title": "缺少 title",
-    "missing_meta_description": "缺少 meta description",
-    "missing_h1": "缺少 H1",
-    "multiple_h1": "多個 H1",
-    "duplicate_title": "重複 title",
-    "http_error": "HTTP 錯誤",
-    "orphan_page": "孤立頁",
-    "blocked_by_robots": "robots 封鎖",
-    "meta_noindex": "noindex（允許）",
-    "missing_og_tags": "缺少 Open Graph",
-    "missing_json_ld": "缺少 JSON-LD",
-}
+from sitespider.issues import ISSUE_LABELS
 
 LIGHTHOUSE_MIN = {
     "performance": 50,

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>營運後台 — SiteSpider</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="/ui/tokens.css">
+  <link rel="stylesheet" href="/ui/shell.css">
+  <link rel="stylesheet" href="/ui/theme.css">
+  <link rel="stylesheet" href="/ui/comfort-display.css">
+  <link rel="stylesheet" href="/ui/polish.css">
+  <link rel="stylesheet" href="/ui/ux-friendly.css">
+  <link rel="stylesheet" href="/ui/site-reset.css">
+  <link rel="stylesheet" href="/ui/nav-back.css">
+</head>
+<body class="app-console">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon" data-brand></div>
+      <div>
+        <p class="brand-title">SiteSpider</p>
+        <p class="brand-sub">SEO · GEO 顧問交付</p>
+      </div>
+    </div>
+    <nav class="topnav" data-ss-nav>
+      <button type="button" class="theme-toggle" title="切換主題">◑</button>
+    </nav>
+  </header>
+
+  <div class="page-wrap page-wrap--admin admin-page" id="main-content" tabindex="-1">
+    <header class="page-hero">
+      <h1 class="page-title">客戶帳號管理</h1>
+      <p class="page-intro">輪替 API 金鑰、重寄歡迎信、手動加發 AI 文案次數、檢視本月用量。（營運人員需設定 <code>SITESPIDER_ADMIN_KEY</code>）</p>
+    </header>
+
+    <div class="card form-narrow">
+      <h2>驗證</h2>
+      <label for="admin_key">Admin Key</label>
+      <input type="password" id="admin_key" placeholder="SITESPIDER_ADMIN_KEY">
+      <label for="ai_bonus_extra">AI 加購次數（手動發放預設值）</label>
+      <input type="number" id="ai_bonus_extra" min="1" max="500" value="10">
+      <button type="button" id="btn-load" class="full-width">載入帳號列表</button>
+    </div>
+
+    <div id="key-reveal" class="card key-reveal">
+      <strong>新 API 金鑰（請立即複製，之後無法再次顯示）</strong>
+      <p class="mono" id="new-key"></p>
+    </div>
+
+    <div class="card" style="overflow-x:auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>帳號</th><th>方案</th><th>Email</th><th>本月爬取</th><th>AI 文案</th><th>頁數</th><th>API 金鑰</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="/ui/app-shell.js"></script>
+  <script src="/ui/nav-back.js"></script>
+  <script src="/ui/topnav.js"></script>
+  <script>
+    SiteSpiderNav.render('admin');
+    function toast(msg, type) {
+      if (window.SiteSpiderShell && SiteSpiderShell.toast) SiteSpiderShell.toast(msg, type || 'info');
+      else alert(msg);
+    }
+
+    function adminHeaders() {
+      const k = document.getElementById('admin_key').value.trim();
+      const h = { 'Content-Type': 'application/json' };
+      if (k) h['Authorization'] = 'Bearer ' + k;
+      return h;
+    }
+
+    function aiUsageCell(t) {
+      const lim = t.limits || {};
+      const u = t.usage || {};
+      const cap = lim.ai_polish_limit_effective || lim.max_ai_polish_per_month || 0;
+      if (cap <= 0) return '—';
+      let s = (u.ai_polishes || 0) + ' / ' + cap;
+      if (lim.ai_polish_bonus > 0) s += ' (+' + lim.ai_polish_bonus + ')';
+      return s;
+    }
+
+    let __adminPlans = [];
+
+    async function loadTenants() {
+      const res = await fetch('/api/admin/tenants', { headers: adminHeaders() });
+      const data = await res.json();
+      if (!res.ok) { toast(data.error || '載入失敗', 'error'); return; }
+      __adminPlans = data.plans || [];
+      const tb = document.getElementById('tbody');
+      tb.innerHTML = '';
+      if (!(data.tenants || []).length) {
+        tb.innerHTML = '<tr><td colspan="8"><p class="empty-hint">尚無租戶資料 — 確認 Admin Key 後重新載入。</p></td></tr>';
+        return;
+      }
+      const defaultExtra = parseInt(document.getElementById('ai_bonus_extra').value, 10) || 10;
+      (data.tenants || []).forEach(t => {
+        const tr = document.createElement('tr');
+        const lim = t.limits || {};
+        const canAi = (lim.ai_polish_limit_effective || lim.max_ai_polish_per_month || 0) > 0;
+        const planCell = document.createElement('td');
+        const sel = document.createElement('select');
+        sel.style.maxWidth = '7rem';
+        sel.style.fontSize = '0.78rem';
+        __adminPlans.forEach(p => {
+          const o = document.createElement('option');
+          o.value = p.id;
+          o.textContent = p.name;
+          if (p.id === t.plan_id) o.selected = true;
+          sel.appendChild(o);
+        });
+        const planBtn = document.createElement('button');
+        planBtn.type = 'button';
+        planBtn.className = 'secondary';
+        planBtn.textContent = '套用';
+        planBtn.style.marginLeft = '0.25rem';
+        planBtn.style.fontSize = '0.72rem';
+        planBtn.onclick = async () => {
+          if (sel.value === t.plan_id) return;
+          const r = await fetch('/api/admin/tenant/' + encodeURIComponent(t.tenant_id) + '/plan', {
+            method: 'POST',
+            headers: adminHeaders(),
+            body: JSON.stringify({ plan_id: sel.value }),
+          });
+          const d = await r.json();
+          if (!r.ok) { toast(d.error || '失敗', 'error'); return; }
+          toast('已改為 ' + d.plan_name, 'success');
+          loadTenants();
+        };
+        planCell.appendChild(sel);
+        planCell.appendChild(planBtn);
+        tr.innerHTML =
+          '<td>' + t.tenant_id + '</td>' +
+          '<td></td>' +
+          '<td>' + (t.email || '—') + '</td>' +
+          '<td>' + (t.usage.crawls||0) + ' / ' + (lim.max_crawls_per_month||'—') + '</td>' +
+          '<td>' + aiUsageCell(t) + '</td>' +
+          '<td>' + (t.usage.pages||0) + '</td>' +
+          '<td class="mono">' + (t.api_key_hints||[]).join(', ') + '</td>' +
+          '<td class="admin-actions"></td>';
+        tr.children[1].replaceWith(planCell);
+        const actions = tr.querySelector('.admin-actions');
+        const mk = (label, cls) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'secondary ' + cls;
+          b.textContent = label;
+          b.style.marginRight = '0.25rem';
+          b.style.marginBottom = '0.25rem';
+          return b;
+        };
+        actions.appendChild(mk('輪替 Key', 'btn-rotate')).onclick = async () => {
+          const r = await fetch('/api/admin/tenant/' + encodeURIComponent(t.tenant_id) + '/rotate-key', {
+            method: 'POST', headers: adminHeaders()
+          });
+          const d = await r.json();
+          if (!r.ok) { toast(d.error, 'error'); return; }
+          document.getElementById('key-reveal').style.display = 'block';
+          document.getElementById('new-key').textContent = d.api_key;
+          loadTenants();
+        };
+        if (t.email) {
+          actions.appendChild(mk('重寄開通信', 'btn-resend')).onclick = async () => {
+            const r = await fetch('/api/admin/tenant/' + encodeURIComponent(t.tenant_id) + '/resend-welcome', {
+              method: 'POST', headers: adminHeaders()
+            });
+            const d = await r.json();
+            toast(r.ok && d.ok ? '已重寄至 ' + d.email : (d.error || '寄信失敗'), r.ok && d.ok ? 'success' : 'error');
+          };
+        }
+        if (canAi) {
+          actions.appendChild(mk('+' + defaultExtra + ' AI', 'btn-ai-bonus')).onclick = async () => {
+            const extra = prompt('加購 AI 文案次數', String(defaultExtra));
+            if (!extra) return;
+            const r = await fetch('/api/admin/tenant/' + encodeURIComponent(t.tenant_id) + '/ai-bonus', {
+              method: 'POST',
+              headers: adminHeaders(),
+              body: JSON.stringify({ extra: parseInt(extra, 10) }),
+            });
+            const d = await r.json();
+            if (!r.ok) { toast(d.error || '失敗', 'error'); return; }
+            toast('已加購 ' + d.added + ' 次，本月有效額度 ' + d.ai_polish_limit_effective, 'success');
+            loadTenants();
+          };
+        }
+        tb.appendChild(tr);
+      });
+    }
+
+    document.getElementById('btn-load').onclick = loadTenants;
+    try {
+      const saved = localStorage.getItem('sitespider-admin-key');
+      if (saved) document.getElementById('admin_key').value = saved;
+    } catch (_) {}
+    document.getElementById('admin_key').addEventListener('change', () => {
+      try { localStorage.setItem('sitespider-admin-key', document.getElementById('admin_key').value); } catch (_) {}
+    });
+  </script>
+</body>
+</html>

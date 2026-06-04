@@ -12,15 +12,18 @@ from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Any, Callable, Literal
 from urllib.parse import urlparse, urljoin, urlunparse
 
 import requests
 from bs4 import BeautifulSoup
 
+from sitespider.issues import ISSUE_LABELS
 from sitespider.lighthouse_runner import LighthouseScores, run_lighthouse_batch
 from sitespider.robots import RobotsManager, meta_robots_noindex
 from sitespider.sitemap import fetch_sitemap_urls, file_urls_from_sitemap
+
+_AUDIT_ISSUE_CODES = frozenset(ISSUE_LABELS.keys())
 
 SKIP_SCHEMES = ("mailto:", "tel:", "javascript:", "data:", "#")
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".ico", ".avif")
@@ -33,6 +36,12 @@ class ImageInfo:
     resolved: str
     status: int | None
     issue: str | None = None
+    width: int | None = None
+    height: int | None = None
+    loading: str | None = None
+    content_type: str | None = None
+    byte_size: int | None = None
+    local_file: str | None = None
 
 
 @dataclass
@@ -43,6 +52,8 @@ class LinkInfo:
     link_type: Literal["internal", "external", "asset", "anchor", "other"]
     status: int | None = None
     issue: str | None = None
+    nofollow: bool = False
+    link_position: str = "Content"
 
 
 @dataclass
@@ -81,22 +92,27 @@ class PageResult:
     og_description: str | None = None
     has_json_ld: bool = False
     json_ld_types: list[str] = field(default_factory=list)
-
-
-PAGES_EXPECT_JSON_LD = frozenset(
-    {
-        "index.html",
-        "products.html",
-        "product.html",
-        "blog.html",
-        "blog-post.html",
-        "faq.html",
-        "about.html",
-        "guide.html",
-        "nutrition.html",
-        "contact.html",
-    }
-)
+    html_lang: str | None = None
+    request_url: str | None = None
+    redirect_chain: list[str] = field(default_factory=list)
+    has_viewport: bool = False
+    indexability: str = "Indexable"
+    indexability_status: str = ""
+    hreflangs: list[dict[str, str]] = field(default_factory=list)
+    response_headers: dict[str, str] = field(default_factory=dict)
+    meta_keywords: str | None = None
+    pagination_prev: str | None = None
+    pagination_next: str | None = None
+    content_hash: str = ""
+    serp_title_pixels: int = 0
+    serp_meta_pixels: int = 0
+    mixed_content_count: int = 0
+    is_https: bool = False
+    rendered_with_js: bool = False
+    amp_html_url: str | None = None
+    console_messages: list[str] = field(default_factory=list)
+    screenshot_path: str | None = None
+    custom_fields: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -110,6 +126,31 @@ class CrawlConfig:
     run_lighthouse: bool = False
     lighthouse_max: int = 10
     timeout: float = 15.0
+    require_json_ld: bool = False
+    thin_content_min_words: int = 300
+    sitemap_path_prefixes: tuple[str, ...] = ()
+    exclude_path_prefixes: tuple[str, ...] = ()
+    defer_link_checks: bool = True
+    check_images_on_fetch: bool = False
+    audit_hreflang: bool = True
+    json_ld_rules: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    finalize_check_workers: int = 8
+    render_javascript: bool = False
+    render_wait_until: str = "domcontentloaded"
+    render_extra_wait_ms: int = 500
+    render_timeout_ms: int = 30_000
+    list_mode: bool = False
+    seed_urls: tuple[str, ...] = ()
+    crawl_list_only: bool = False
+    strip_query_string: bool = False
+    custom_extractions: tuple = ()  # tuple[ExtractionRule,...] loaded at runtime
+    save_screenshots: bool = False
+    capture_console: bool = True
+    download_images: bool = False
+    max_images_download: int = 300
+    images_same_host_only: bool = True
+    gsc_site_url: str | None = None
+    gsc_inspect_max: int = 0
 
 
 @dataclass
@@ -120,9 +161,15 @@ class CrawlReport:
     pages: dict[str, PageResult] = field(default_factory=dict)
     errors: list[str] = field(default_factory=list)
     robots_info: dict = field(default_factory=dict)
+    llms_info: dict = field(default_factory=dict)
     sitemap_urls: list[str] = field(default_factory=list)
     blocked_urls: list[str] = field(default_factory=list)
+    sitemap_not_crawled: list[str] = field(default_factory=list)
+    sitemap_not_in_sitemap: list[str] = field(default_factory=list)
+    js_rendered_pages: int = 0
+    screenshot_dir: str | None = None
     lighthouse: dict[str, dict] = field(default_factory=dict)
+    gsc_rich_inspections: dict[str, dict[str, str]] = field(default_factory=dict)
     started_at: float = field(default_factory=time.time)
     finished_at: float | None = None
 
@@ -130,11 +177,14 @@ class CrawlReport:
         buckets: dict[str, list[str]] = defaultdict(list)
         titles: dict[str, list[str]] = defaultdict(list)
 
+        metas: dict[str, list[str]] = defaultdict(list)
         for url, page in self.pages.items():
             for issue in page.issues:
                 buckets[issue].append(url)
             if page.title:
                 titles[page.title.strip()].append(url)
+            if page.meta_description and page.meta_description.strip():
+                metas[page.meta_description.strip()].append(url)
 
         for _title, urls in titles.items():
             if len(urls) <= 1:
@@ -146,14 +196,32 @@ class CrawlReport:
                     self.pages[u].issues.append("duplicate_title")
             buckets["duplicate_title"].extend(urls)
 
+        for _meta, urls in metas.items():
+            if len(urls) <= 1:
+                continue
+            for u in urls:
+                if "duplicate_meta_description" not in self.pages[u].issues:
+                    self.pages[u].issues.append("duplicate_meta_description")
+            buckets["duplicate_meta_description"].extend(urls)
+
         return dict(buckets)
 
 
 def _normalize_url(url: str, base: str) -> str | None:
     if not url or url.strip().startswith(SKIP_SCHEMES):
         return None
-    joined = urljoin(base, url.strip())
+    raw = url.strip()
+    # Webflow 等 CMS：canonical/href 常為 "www.example.com/path"（無 scheme）
+    if "://" not in raw:
+        if raw.startswith("//"):
+            base_scheme = urlparse(base).scheme or "https"
+            raw = f"{base_scheme}:{raw}"
+        elif re.match(r"^[\w.-]+\.[a-z]{2,}(/.*)?$", raw, re.I):
+            raw = "https://" + raw.lstrip("/")
+    joined = urljoin(base, raw)
     parsed = urlparse(joined)
+    if "://" in (parsed.path or ""):
+        return None
     if parsed.scheme not in ("http", "https", "file", ""):
         return None
     return urlunparse(
@@ -192,6 +260,19 @@ def _strip_text(el) -> str:
     return re.sub(r"\s+", " ", el.get_text(separator=" ", strip=True))
 
 
+def _parse_img_dimension(value) -> int | None:
+    if value is None or value == "":
+        return None
+    s = str(value).strip()
+    if not s or s.endswith("%"):
+        return None
+    try:
+        n = int(float(s))
+        return n if n > 0 else None
+    except ValueError:
+        return None
+
+
 def _word_count(soup: BeautifulSoup) -> int:
     for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
@@ -213,13 +294,9 @@ def _classify_link(resolved: str, base: str) -> Literal["internal", "external", 
     return "other"
 
 
-def _page_filename(url: str) -> str:
-    path = urlparse(url).path
-    name = Path(path).name
-    return name if name else "index.html"
-
-
-def _audit_page(page: PageResult) -> None:
+def _audit_page(page: PageResult, config: CrawlConfig | None = None) -> None:
+    cfg = config or CrawlConfig()
+    page.issues = [i for i in page.issues if i not in _AUDIT_ISSUE_CODES]
     issues = page.issues
     if page.blocked_by_robots:
         issues.append("blocked_by_robots")
@@ -228,8 +305,7 @@ def _audit_page(page: PageResult) -> None:
         return
     if not page.og_title:
         issues.append("missing_og_tags")
-    fname = _page_filename(page.url)
-    if fname in PAGES_EXPECT_JSON_LD and not page.has_json_ld:
+    if cfg.require_json_ld and not page.has_json_ld:
         issues.append("missing_json_ld")
     if page.status >= 400:
         issues.append("http_error")
@@ -243,10 +319,38 @@ def _audit_page(page: PageResult) -> None:
         issues.append("missing_meta_description")
     elif len(page.meta_description) > 160:
         issues.append("meta_description_too_long")
+    elif len(page.meta_description.strip()) < 50:
+        issues.append("meta_description_too_short")
     if not page.h1:
         issues.append("missing_h1")
     elif len(page.h1) > 1:
         issues.append("multiple_h1")
+    if not page.canonical:
+        issues.append("missing_canonical")
+    elif page.canonical:
+        page_norm = _canonical_for_compare(page.url)
+        canon_norm = _canonical_for_compare(page.canonical)
+        if page_norm and canon_norm and page_norm != canon_norm:
+            issues.append("canonical_mismatch")
+    thin_min = cfg.thin_content_min_words or 0
+    if thin_min > 0 and page.word_count < thin_min:
+        issues.append("thin_content")
+    if not page.html_lang or not str(page.html_lang).strip():
+        issues.append("missing_html_lang")
+    if not page.has_viewport:
+        issues.append("missing_viewport")
+    if len(page.redirect_chain) > 1:
+        issues.append("redirect_chain")
+    if (
+        page.title
+        and page.h1
+        and page.title.strip().lower() == page.h1[0].strip().lower()
+    ):
+        issues.append("title_equals_h1")
+    for link in page.links:
+        if link.link_type == "internal" and link.status is not None and link.status >= 400:
+            issues.append("broken_internal_link")
+            break
     for img in page.images:
         if img.status and img.status >= 400:
             issues.append("broken_image")
@@ -258,6 +362,33 @@ def _audit_page(page: PageResult) -> None:
         issues.append("lighthouse_seo_low")
     if page.lighthouse and page.lighthouse.performance is not None and page.lighthouse.performance < 50:
         issues.append("lighthouse_perf_low")
+
+    from sitespider.indexability import apply_indexability
+
+    apply_indexability(page)
+
+
+def _path_excluded(url: str, prefixes: tuple[str, ...]) -> bool:
+    if not prefixes:
+        return False
+    path = urlparse(url).path or "/"
+    for raw in prefixes:
+        p = raw.strip()
+        if not p:
+            continue
+        if not p.startswith("/"):
+            p = "/" + p
+        if path.startswith(p):
+            return True
+    return False
+
+
+def _canonical_for_compare(url: str) -> str:
+    p = urlparse(url)
+    path = p.path or "/"
+    if path.endswith("/") and path != "/":
+        path = path.rstrip("/")
+    return urlunparse((p.scheme, p.netloc, path, "", "", ""))
 
 
 class SeoCrawler:
@@ -279,8 +410,12 @@ class SeoCrawler:
         self.user_agent = user_agent
         self.on_progress = on_progress
         self.lighthouse_out = lighthouse_out
+        self._screenshot_dir = None
+        if config.save_screenshots and lighthouse_out:
+            self._screenshot_dir = lighthouse_out.parent / "screenshots"
         self.session = requests.Session()
         self.session.headers["User-Agent"] = user_agent
+        self._session_local = threading.local()
         self._checked_urls: dict[str, int | None] = {}
         self._check_lock = threading.Lock()
         self._pages_lock = threading.Lock()
@@ -297,9 +432,45 @@ class SeoCrawler:
             session=self.session,
             enabled=self.config.respect_robots,
         )
+        self._js_renderer = None
+        if self.config.render_javascript and mode == "http":
+            from sitespider.js_render import PlaywrightRenderer, playwright_available
+
+            if not playwright_available():
+                raise RuntimeError(
+                    "已啟用 --render-js，但未安裝 Playwright。請執行：\n"
+                    '  pip install "sitespider[browser]"\n'
+                    "  playwright install chromium"
+                )
+            self._js_renderer = PlaywrightRenderer(
+                user_agent=user_agent,
+                timeout_ms=self.config.render_timeout_ms,
+                wait_until=self.config.render_wait_until,  # type: ignore[arg-type]
+                extra_wait_ms=self.config.render_extra_wait_ms,
+                capture_console=self.config.capture_console,
+            )
+        self._extraction_rules = ()
+        if config.custom_extractions:
+            from sitespider.custom_extract import ExtractionRule
+
+            rules = []
+            for raw in config.custom_extractions:
+                if isinstance(raw, dict):
+                    r = ExtractionRule.from_dict(raw)
+                    if r:
+                        rules.append(r)
+            self._extraction_rules = tuple(rules)
+
+    def _close_js_renderer(self) -> None:
+        if self._js_renderer is not None:
+            self._js_renderer.close()
+            self._js_renderer = None
 
     def crawl(self) -> CrawlReport:
         cfg = self.config
+        workers = cfg.workers
+        if cfg.render_javascript:
+            workers = min(workers, 2)
         report = CrawlReport(start_url=self.start_url, mode=self.mode, config=cfg)
         report.robots_info = {
             "source": self.robots.info.source,
@@ -308,18 +479,36 @@ class SeoCrawler:
             "sitemaps": self.robots.info.sitemap_urls,
         }
 
-        base_scope = self._base_scope()
         seen: set[str] = set()
         queue: deque[tuple[str, int, str | None, str]] = deque()
 
+        try:
+            return self._crawl_loop(report, cfg, workers, seen, queue)
+        finally:
+            self._close_js_renderer()
+
+    def _crawl_loop(
+        self,
+        report: CrawlReport,
+        cfg: CrawlConfig,
+        workers: int,
+        seen: set[str],
+        queue: deque,
+    ) -> CrawlReport:
         start = self._initial_start()
-        if not start:
+        if not start and not cfg.seed_urls:
             report.errors.append("找不到起始頁 index.html")
             return report
 
-        queue.append((start, 0, None, "start"))
+        if cfg.seed_urls:
+            for u in cfg.seed_urls:
+                norm = self._canonical_page_url(u)
+                if norm not in seen:
+                    queue.append((u, 0, None, "list"))
+        elif start:
+            queue.append((start, 0, None, "start"))
 
-        if cfg.use_sitemap:
+        if cfg.use_sitemap and not cfg.list_mode:
             sitemap_seeds = self._sitemap_seeds(report)
             for u in sitemap_seeds:
                 norm = self._canonical_page_url(u)
@@ -331,11 +520,14 @@ class SeoCrawler:
 
         while queue and crawled < cfg.max_pages:
             batch: list[tuple[str, int, str | None, str]] = []
-            while queue and len(batch) < cfg.workers:
+            while queue and len(batch) < workers:
                 item = queue.popleft()
                 url, depth, referrer, seed = item
                 norm = self._canonical_page_url(url)
                 if norm in seen or depth > cfg.max_depth:
+                    continue
+                if _path_excluded(url, cfg.exclude_path_prefixes):
+                    seen.add(norm)
                     continue
                 if cfg.respect_robots and not self.robots.allowed(url):
                     report.blocked_urls.append(norm)
@@ -355,6 +547,9 @@ class SeoCrawler:
                         seed_source=seed,
                     )
                     blocked.issues.append("blocked_by_robots")
+                    from sitespider.indexability import apply_indexability
+
+                    apply_indexability(blocked)
                     with self._pages_lock:
                         report.pages[norm] = blocked
                     continue
@@ -364,7 +559,7 @@ class SeoCrawler:
             if not batch:
                 continue
 
-            with ThreadPoolExecutor(max_workers=min(cfg.workers, len(batch))) as pool:
+            with ThreadPoolExecutor(max_workers=min(workers, len(batch))) as pool:
                 futures = {
                     pool.submit(self._process_one, url, depth, referrer, seed): (
                         url,
@@ -396,12 +591,27 @@ class SeoCrawler:
                     total_estimate = max(total_estimate, crawled + len(queue))
 
         self._finalize_inlinks(report)
+        self._finalize_resource_checks(report)
         self._mark_orphans(report)
 
         if cfg.run_lighthouse and self.mode == "http":
             self._run_lighthouse(report)
 
+        from sitespider.post_crawl import run_post_crawl_audits
+
+        run_post_crawl_audits(
+            report,
+            mode=self.mode,
+            canonical_fn=self._canonical_page_url,
+            config=cfg,
+        )
+
         report.finished_at = time.time()
+        report.js_rendered_pages = sum(
+            1 for p in report.pages.values() if p.rendered_with_js
+        )
+        if self._screenshot_dir:
+            report.screenshot_dir = str(self._screenshot_dir)
         report.summary_issues()
         return report
 
@@ -435,12 +645,15 @@ class SeoCrawler:
                     seo=sc.seo,
                     error=sc.error,
                 )
-                _audit_page(report.pages[norm])
+                _audit_page(report.pages[norm], self.config)
 
     def _sitemap_seeds(self, report: CrawlReport) -> list[str]:
         extra = self.robots.info.sitemap_urls
         if self.mode == "file":
-            urls = file_urls_from_sitemap(self.site_root)
+            urls = file_urls_from_sitemap(
+                self.site_root,
+                path_prefixes=self.config.sitemap_path_prefixes,
+            )
             report.sitemap_urls = urls
             return urls
 
@@ -452,6 +665,7 @@ class SeoCrawler:
             session=self.session,
             extra_sitemap_urls=extra,
             user_agent=self.user_agent,
+            path_prefixes=self.config.sitemap_path_prefixes,
         )
         report.errors.extend(errs)
         report.sitemap_urls = urls
@@ -466,13 +680,119 @@ class SeoCrawler:
         page.seed_source = seed
         norm = self._canonical_page_url(page.url)
         new_links: list[str] = []
-        base = self._base_scope()
-        for link in page.links:
-            if link.link_type == "internal" and _is_internal_html(link.resolved, base):
-                if self.config.respect_robots and not self.robots.allowed(link.resolved):
-                    continue
-                new_links.append(link.resolved)
+        if not self.config.crawl_list_only:
+            base = self._base_scope()
+            for link in page.links:
+                if link.link_type == "internal" and _is_internal_html(link.resolved, base):
+                    if self.config.respect_robots and not self.robots.allowed(link.resolved):
+                        continue
+                    new_links.append(link.resolved)
         return norm, page, new_links
+
+    def _http_session(self) -> requests.Session:
+        """並行爬取時每執行緒獨立 Session（requests.Session 非 thread-safe）。"""
+        sess = getattr(self._session_local, "session", None)
+        if sess is None:
+            sess = requests.Session()
+            sess.headers["User-Agent"] = self.user_agent
+            self._session_local.session = sess
+        return sess
+
+    def _resolve_link_status(self, resolved: str, report: CrawlReport) -> int | None:
+        target = self._canonical_page_url(resolved)
+        if target in report.pages:
+            return report.pages[target].status
+        if self.mode == "http":
+            return self._check_url(resolved)
+        return None
+
+    def _batch_check_urls(self, urls: set[str]) -> None:
+        """並行 HEAD 尚未快取的 URL。"""
+        pending = [u for u in urls if u and u not in self._checked_urls]
+        if not pending:
+            return
+        workers = min(max(1, self.config.finalize_check_workers), len(pending))
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            list(pool.map(self._check_url, pending))
+
+    def _finalize_resource_checks(self, report: CrawlReport) -> None:
+        """爬取結束後批次檢查內鏈／圖片（預設爬取中不逐條 HEAD）。"""
+        cfg = self.config
+        pending_network: set[str] = set()
+
+        for page in report.pages.values():
+            for link in page.links:
+                if link.link_type == "internal":
+                    if not cfg.defer_link_checks and link.status is not None:
+                        continue
+                    target = self._canonical_page_url(link.resolved)
+                    if target in report.pages:
+                        link.status = report.pages[target].status
+                    elif self.mode == "http":
+                        pending_network.add(link.resolved)
+                elif link.link_type == "external" and cfg.check_external:
+                    pending_network.add(link.resolved)
+
+            if self.mode == "http" and not cfg.check_images_on_fetch:
+                for img in page.images:
+                    if not img.resolved or img.resolved.startswith("data:"):
+                        continue
+                    pending_network.add(img.resolved)
+
+        if self.mode == "http" and pending_network:
+            self._batch_check_urls(pending_network)
+
+        for page in report.pages.values():
+            for link in page.links:
+                if link.link_type == "internal":
+                    if not cfg.defer_link_checks and link.status is not None:
+                        continue
+                    target = self._canonical_page_url(link.resolved)
+                    if target in report.pages:
+                        link.status = report.pages[target].status
+                    elif link.status is None:
+                        link.status = self._checked_urls.get(link.resolved)
+                    if link.status is not None and link.status >= 400:
+                        link.issue = "broken_link"
+                    elif link.issue == "broken_link":
+                        link.issue = None
+                elif link.link_type == "external" and cfg.check_external:
+                    if link.status is None:
+                        link.status = self._checked_urls.get(link.resolved)
+                    if link.status is not None and link.status >= 400:
+                        link.issue = "broken_link"
+
+            if self.mode == "http" and not cfg.check_images_on_fetch:
+                for img in page.images:
+                    if not img.resolved or img.resolved.startswith("data:"):
+                        continue
+                    if img.status is None:
+                        img.status = self._checked_urls.get(img.resolved)
+                    if img.status is not None and img.status >= 400:
+                        img.issue = "broken_image"
+                    elif img.alt is None or not str(img.alt).strip():
+                        img.issue = (img.issue or "missing_alt").strip()
+
+            _audit_page(page, self.config)
+
+        if cfg.json_ld_rules:
+            from sitespider.json_ld_audit import JsonLdRule, audit_json_ld_rules
+
+            rules = tuple(
+                JsonLdRule(types=types, path_contains=path)
+                for path, types in cfg.json_ld_rules
+                if path and types
+            )
+            audit_json_ld_rules(report, rules)
+
+        if cfg.audit_hreflang and self.mode == "http":
+            from sitespider.hreflang import audit_hreflang
+
+            audit_hreflang(
+                report,
+                canonical_fn=self._canonical_page_url,
+                check_url=self._check_url,
+            )
 
     def _finalize_inlinks(self, report: CrawlReport) -> None:
         graph: dict[str, list[str]] = defaultdict(list)
@@ -509,6 +829,10 @@ class SeoCrawler:
 
     def _canonical_page_url(self, url: str) -> str:
         p = urlparse(url)
+        if self.config.strip_query_string:
+            p = p._replace(query="", fragment="")
+            url = urlunparse((p.scheme, p.netloc, p.path, "", "", ""))
+            p = urlparse(url)
         path = p.path or "/"
         if path in ("/", ""):
             path = "/index.html"
@@ -544,15 +868,28 @@ class SeoCrawler:
             source="file",
         )
         if not path.exists():
-            _audit_page(page)
+            _audit_page(page, self.config)
             return page
 
         html = path.read_text(encoding="utf-8", errors="replace")
         base = path.parent.as_uri() + "/"
         self._parse_html(page, html, base)
         self._check_resources_file(page, path.parent)
-        _audit_page(page)
+        _audit_page(page, self.config)
         return page
+
+    def _apply_html_body(self, page: PageResult, html_body: str, base_url: str) -> None:
+        page.content_type = "text/html; charset=UTF-8"
+        self._parse_html(page, html_body, base_url)
+        from sitespider.post_crawl import compute_content_hash_from_html
+
+        page.content_hash = compute_content_hash_from_html(html_body)
+        if self._extraction_rules:
+            from sitespider.custom_extract import apply_extractions
+
+            page.custom_fields = apply_extractions(html_body, self._extraction_rules)
+        if self.config.check_images_on_fetch:
+            self._check_resources_http(page, base_url)
 
     def _fetch_http(self, url: str, depth: int, t0: float) -> PageResult:
         page = PageResult(
@@ -567,23 +904,54 @@ class SeoCrawler:
             crawl_depth=depth,
             source="http",
         )
+        page.request_url = url
         try:
-            resp = self.session.get(url, timeout=self.config.timeout, allow_redirects=True)
+            if self._js_renderer and _is_html_url(url):
+                shot_path = None
+                if self._screenshot_dir:
+                    safe = re.sub(r"[^a-zA-Z0-9._-]+", "_", urlparse(url).path)[:80] or "root"
+                    shot_path = str(self._screenshot_dir / f"{safe}.png")
+                rendered = self._js_renderer.fetch(url, screenshot_path=shot_path)
+                page.response_ms = (time.perf_counter() - t0) * 1000
+                if rendered.error or not rendered.html:
+                    page.status = 0
+                    page.issues.append(f"request_failed: {rendered.error or 'empty render'}")
+                else:
+                    page.status = rendered.status or 200
+                    page.url = rendered.final_url
+                    if rendered.final_url != url:
+                        page.redirect_chain = [url, rendered.final_url]
+                    page.rendered_with_js = True
+                    page.console_messages = list(rendered.console_messages or [])
+                    if shot_path:
+                        page.screenshot_path = shot_path
+                    self._apply_html_body(page, rendered.html, rendered.final_url)
+                _audit_page(page, self.config)
+                return page
+
+            resp = self._http_session().get(url, timeout=self.config.timeout, allow_redirects=True)
             page.status = resp.status_code
             page.content_type = resp.headers.get("Content-Type")
             page.response_ms = (time.perf_counter() - t0) * 1000
             page.url = resp.url
+            if resp.history:
+                page.redirect_chain = [h.url for h in resp.history] + [resp.url]
+            elif resp.url != url:
+                page.redirect_chain = [url, resp.url]
             if "text/html" in (page.content_type or ""):
-                self._parse_html(page, resp.text, resp.url)
-                self._check_resources_http(page, resp.url)
+                page.response_headers = {k.lower(): v for k, v in resp.headers.items()}
+                self._apply_html_body(page, resp.text, resp.url)
         except requests.RequestException as e:
             page.status = 0
             page.issues.append(f"request_failed: {e}")
-        _audit_page(page)
+        _audit_page(page, self.config)
         return page
 
     def _parse_html(self, page: PageResult, html: str, base: str) -> None:
         soup = BeautifulSoup(html, "lxml")
+        html_tag = soup.find("html")
+        if html_tag and html_tag.get("lang"):
+            page.html_lang = str(html_tag["lang"]).strip()
         if soup.title and soup.title.string:
             page.title = soup.title.string.strip()
         desc = soup.find("meta", attrs={"name": re.compile(r"^description$", re.I)})
@@ -592,6 +960,12 @@ class SeoCrawler:
         robots = soup.find("meta", attrs={"name": re.compile(r"^robots$", re.I)})
         if robots and robots.get("content"):
             page.meta_robots = robots["content"].strip()
+        keywords = soup.find("meta", attrs={"name": re.compile(r"^keywords$", re.I)})
+        if keywords and keywords.get("content"):
+            page.meta_keywords = keywords["content"].strip()
+        viewport = soup.find("meta", attrs={"name": re.compile(r"^viewport$", re.I)})
+        if viewport and (viewport.get("content") or "").strip():
+            page.has_viewport = True
         canonical = soup.find("link", rel=re.compile(r"canonical", re.I))
         if canonical and canonical.get("href"):
             page.canonical = _normalize_url(canonical["href"], base)
@@ -620,36 +994,125 @@ class SeoCrawler:
                 continue
         page.json_ld_types = list(dict.fromkeys(types))
 
-        for a in soup.find_all("a", href=True):
-            resolved = _normalize_url(a["href"], base)
+        seen_hrefs: set[str] = set()
+
+        from sitespider.link_context import detect_link_position, is_nofollow
+
+        def _add_link(
+            href: str,
+            text: str = "",
+            *,
+            check_status: bool = True,
+            anchor_el=None,
+            rel: Any = None,
+        ) -> None:
+            if not href or href in seen_hrefs:
+                return
+            seen_hrefs.add(href)
+            resolved = _normalize_url(href, base)
             if not resolved:
-                continue
+                return
             ltype = _classify_link(resolved, base)
             link = LinkInfo(
-                href=a["href"],
-                text=_strip_text(a)[:120],
+                href=href,
+                text=(text or "")[:120],
                 resolved=resolved,
                 link_type=ltype,
+                nofollow=is_nofollow(rel),
+                link_position=detect_link_position(anchor_el) if anchor_el else "Content",
             )
-            if ltype in ("internal", "external") and (
-                self.config.check_external or ltype == "internal"
+            eager = not self.config.defer_link_checks
+            if check_status and ltype == "internal" and eager:
+                link.status = self._check_url(resolved)
+                if link.status is not None and link.status >= 400:
+                    link.issue = "broken_link"
+            elif (
+                check_status
+                and ltype == "external"
+                and self.config.check_external
             ):
                 link.status = self._check_url(resolved)
-                if link.status and link.status >= 400:
+                if link.status is not None and link.status >= 400:
                     link.issue = "broken_link"
             page.links.append(link)
 
+        for a in soup.find_all("a", href=True):
+            _add_link(
+                a["href"],
+                _strip_text(a),
+                check_status=True,
+                anchor_el=a,
+                rel=a.get("rel"),
+            )
+
+        # 僅用於發現更多爬取種子，不對 rel canonical 做連結失效檢查（避免錯誤 canonical 誤報）
+        for link_el in soup.find_all("link", href=True):
+            rel = link_el.get("rel") or []
+            if isinstance(rel, str):
+                rel = [rel]
+            rel_lower = " ".join(rel).lower()
+            if any(
+                token in rel_lower
+                for token in ("alternate", "canonical", "next", "prev", "prefetch")
+            ):
+                hint = link_el.get("hreflang") or rel_lower
+                resolved_alt = _normalize_url(link_el["href"], base)
+                if resolved_alt:
+                    if "next" in rel_lower:
+                        page.pagination_next = resolved_alt
+                    if "prev" in rel_lower:
+                        page.pagination_prev = resolved_alt
+                if "amphtml" in rel_lower and resolved_alt:
+                    page.amp_html_url = resolved_alt
+                if "alternate" in rel_lower and link_el.get("hreflang") and resolved_alt:
+                    page.hreflangs.append(
+                        {
+                            "lang": str(link_el["hreflang"]).strip(),
+                            "url": link_el["href"],
+                            "resolved": resolved_alt,
+                        }
+                    )
+                _add_link(link_el["href"], f"link {hint}", check_status=False)
+
+        og_url = soup.find("meta", attrs={"property": re.compile(r"^og:url$", re.I)})
+        if og_url and og_url.get("content"):
+            _add_link(og_url["content"].strip(), "og:url", check_status=False)
+
         for img in soup.find_all("img"):
             src = img.get("src") or img.get("data-src")
-            if not src:
+            srcset = img.get("srcset") or ""
+            img_urls: list[str] = []
+            if src:
+                img_urls.append(src)
+            for part in srcset.split(","):
+                part = part.strip()
+                if not part:
+                    continue
+                u = part.split()[0]
+                if u and u not in img_urls:
+                    img_urls.append(u)
+            if not img_urls:
                 page.images.append(
                     ImageInfo(src="", alt=img.get("alt"), resolved="", status=None, issue="missing_src")
                 )
                 continue
-            resolved = _normalize_url(src, base) or src
-            page.images.append(
-                ImageInfo(src=src, alt=img.get("alt"), resolved=resolved, status=None)
-            )
+            alt = img.get("alt")
+            w = _parse_img_dimension(img.get("width"))
+            h = _parse_img_dimension(img.get("height"))
+            loading = (img.get("loading") or "").strip().lower() or None
+            for u in img_urls:
+                resolved = _normalize_url(u, base) or u
+                page.images.append(
+                    ImageInfo(
+                        src=u,
+                        alt=alt,
+                        resolved=resolved,
+                        status=None,
+                        width=w,
+                        height=h,
+                        loading=loading,
+                    )
+                )
 
     def _check_resources_file(self, page: PageResult, page_dir: Path) -> None:
         for img in page.images:
@@ -683,9 +1146,10 @@ class SeoCrawler:
             if url in self._checked_urls:
                 return self._checked_urls[url]
         try:
-            r = self.session.head(url, timeout=self.config.timeout, allow_redirects=True)
+            sess = self._http_session()
+            r = sess.head(url, timeout=self.config.timeout, allow_redirects=True)
             if r.status_code == 405:
-                r = self.session.get(url, timeout=self.config.timeout, stream=True)
+                r = sess.get(url, timeout=self.config.timeout, stream=True)
             code = r.status_code
         except requests.RequestException:
             code = None
@@ -729,8 +1193,13 @@ def report_to_dict(report: CrawlReport) -> dict:
         "summary_issues": report.summary_issues(),
         "robots_info": report.robots_info,
         "sitemap_urls": report.sitemap_urls,
+        "sitemap_not_crawled": report.sitemap_not_crawled,
+        "sitemap_not_in_sitemap": report.sitemap_not_in_sitemap,
+        "js_rendered_pages": report.js_rendered_pages,
         "blocked_urls": report.blocked_urls,
         "lighthouse": report.lighthouse,
+        "llms_info": report.llms_info,
+        "gsc_rich_inspections": report.gsc_rich_inspections,
         "pages": {url: asdict(p) for url, p in report.pages.items()},
         "errors": report.errors,
     }

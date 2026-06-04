@@ -1,0 +1,68 @@
+"""HTTP smoke tests for console API."""
+
+from __future__ import annotations
+
+import json
+import threading
+from http.server import HTTPServer
+from pathlib import Path
+
+from sitespider import server as srv
+
+
+def _start_test_server(tmp_path: Path) -> tuple[HTTPServer, threading.Thread, int]:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    httpd = HTTPServer(("127.0.0.1", 0), srv.CrawlerHandler)
+    port = httpd.server_address[1]
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    return httpd, thread, port
+
+
+def test_api_info_and_plans(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    httpd, _thread, port = _start_test_server(tmp_path)
+    try:
+        import urllib.request
+
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/info", timeout=5) as resp:
+            info = json.loads(resp.read().decode())
+        assert "version" in info
+        assert "strict_plan" in info
+        assert "client_plan_selectable" in info
+
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/plans", timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+        ids = {p["id"] for p in data["plans"]}
+        assert {"free", "starter", "pro", "agency"} <= ids
+    finally:
+        httpd.shutdown()
+
+
+def test_guide_html_served(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    httpd, _thread, port = _start_test_server(tmp_path)
+    try:
+        import urllib.request
+
+        for path in ("/guide", "/guide/", "/help"):
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}{path}", timeout=5) as resp:
+                html = resp.read().decode()
+            assert resp.status == 200
+            assert "使用說明" in html
+            assert "guide-body" in html
+    finally:
+        httpd.shutdown()
+
+
+def test_sites_html_served(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    httpd, _thread, port = _start_test_server(tmp_path)
+    try:
+        import urllib.request
+
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/sites", timeout=5) as resp:
+            html = resp.read().decode()
+        assert "多站儀表板" in html
+    finally:
+        httpd.shutdown()

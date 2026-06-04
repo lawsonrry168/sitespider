@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0c0e14">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SiteSpider 使用說明：爬取、交付、AI 文案、Search Console、報告品牌與方案功能完整教學。">
+  <title>使用說明 — SiteSpider</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="/ui/tokens.css">
+  <link rel="stylesheet" href="/ui/shell.css">
+  <link rel="stylesheet" href="/ui/theme.css">
+  <link rel="stylesheet" href="/ui/comfort-display.css">
+  <link rel="stylesheet" href="/ui/polish.css">
+  <link rel="stylesheet" href="/ui/ux-friendly.css">
+  <link rel="stylesheet" href="/ui/site-reset.css">
+  <link rel="stylesheet" href="/ui/nav-back.css">
+  <link rel="stylesheet" href="/ui/content-page.css">
+  <link rel="stylesheet" href="/ui/guide-page.css">
+  <style>
+    /* 保底：外部 CSS 未載入或預覽器異常時仍可閱讀 */
+    html { background: #0c0e14; color: #ebe9e3; color-scheme: dark light; }
+    body.guide-doc { margin: 0; min-height: 100vh; }
+    .guide-file-only {
+      display: none;
+      margin: 0;
+      padding: 0.85rem 1rem;
+      font-family: system-ui, "Noto Sans TC", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      background: #3a2020;
+      color: #ffd4d4;
+      border-bottom: 1px solid #6a3030;
+    }
+    html.guide-is-file .guide-file-only { display: block; }
+    .guide-file-only a { color: #8eddb6; }
+  </style>
+  <script>
+    if (location.protocol === "file:") {
+      document.documentElement.classList.add("guide-is-file");
+    }
+  </script>
+</head>
+<body class="app-console guide-doc">
+  <p class="guide-file-only" role="alert">
+    無法以 file:// 開啟此頁。請在專案目錄執行 <code>bash scripts/dev-ui.sh</code>，再用瀏覽器開啟
+    <a href="http://127.0.0.1:8765/guide">http://127.0.0.1:8765/guide</a>。
+  </p>
+  <p id="guide-server-warn" class="guide-file-only" role="alert" hidden
+     style="background:#3a3020;color:#ffe8b0;border-color:#6a5030">
+    無法連上 SiteSpider 伺服器。請執行 <code>bash scripts/dev-ui.sh</code> 後重新整理本頁。
+  </p>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon" data-brand></div>
+      <div>
+        <p class="brand-title">SiteSpider</p>
+        <p class="brand-sub">SEO · GEO 顧問交付</p>
+      </div>
+    </div>
+    <nav class="topnav" data-ss-nav>
+      <button type="button" class="theme-toggle" title="切換主題">◑</button>
+    </nav>
+  </header>
+
+  <div class="page-wrap content-page guide-page" id="main-content" tabindex="-1">
+    <header class="page-hero">
+      <h1 class="page-title">使用說明</h1>
+      <p class="page-intro">
+        本頁說明 SiteSpider 控制台與交付報告的完整流程。建議以
+        <strong>http://127.0.0.1:8765/</strong> 開啟（執行 <code>bash scripts/dev-ui.sh</code>），勿用 <code>file://</code> 直接開 HTML。
+      </p>
+    </header>
+
+    <div class="guide-layout">
+      <nav class="guide-toc" aria-label="目錄">
+        <h2>目錄</h2>
+        <ol>
+          <li><a href="#start">快速開始</a></li>
+          <li><a href="#console">爬取中心三步驟</a></li>
+          <li><a href="#crawl-settings">爬取設定欄位</a></li>
+          <li><a href="#advanced">進階選項</a></li>
+          <li><a href="#delivery">交付報告與檔案</a></li>
+          <li><a href="#ai">AI 文案功能</a></li>
+          <li><a href="#gsc">Search Console</a></li>
+          <li><a href="#branding">報告品牌</a></li>
+          <li><a href="#workspace">帳號、方案與用量</a></li>
+          <li><a href="#sites">多站儀表板</a></li>
+          <li><a href="#schedule">排程爬取</a></li>
+          <li><a href="#compare">報告比對</a></li>
+          <li><a href="#portal">客戶分享連結</a></li>
+          <li><a href="#faq">常見問題</a></li>
+        </ol>
+      </nav>
+
+      <div class="guide-body">
+        <section id="start">
+          <h2>快速開始</h2>
+          <div class="guide-steps">
+            <div class="guide-step">
+              <span class="guide-step-num">1</span>
+              <div>
+                <strong>啟動控制台</strong>
+                在專案目錄執行 <code>bash scripts/dev-ui.sh</code>，瀏覽器開啟 <a href="/">爬取中心</a>。
+              </div>
+            </div>
+            <div class="guide-step">
+              <span class="guide-step-num">2</span>
+              <div>
+                <strong>填寫網址並爬取</strong>
+                輸入客戶網站首頁 URL、客戶名稱，按「開始爬取」。可先點「試跑 12 頁」限制規模。
+              </div>
+            </div>
+            <div class="guide-step">
+              <span class="guide-step-num">3</span>
+              <div>
+                <strong>開啟交付</strong>
+                完成後進入步驟 3，點「開啟交付導覽」或下載 ZIP，交給客戶離線閱讀。
+              </div>
+            </div>
+          </div>
+          <p>不確定效果時，可先開 <a href="/demo">範例報告</a> 熟悉報告結構。</p>
+        </section>
+
+        <section id="console">
+          <h2>爬取中心三步驟</h2>
+          <p>頂部情境列顯示目前步驟；右側欄會依步驟切換內容（快速開始／即時監控／交付小幫手）。</p>
+          <h3>① 設定</h3>
+          <ul>
+            <li>填寫<strong>客戶網站網址</strong>（建議含 <code>https://</code> 與尾端斜線）。</li>
+            <li><strong>客戶／專案名稱</strong>會出現在任務列表與交付摘要，方便日後找回。</li>
+            <li><strong>＋ 新爬取</strong>：清除目前任務畫面，回到步驟 1 重新設定（不刪除舊報告檔案）。</li>
+            <li><strong>目前任務</strong>下拉：快速切換最近完成的爬取。</li>
+          </ul>
+          <h3>② 爬取</h3>
+          <ul>
+            <li>中央顯示進度環與目前 URL；右側「即時監控」顯示已爬頁數、問題命中與 Top 問題。</li>
+            <li>匯出分階段：爬取 → 快速匯出 → 完整匯出；快速完成後可先進入交付預覽。</li>
+          </ul>
+          <h3>③ 交付</h3>
+          <ul>
+            <li>左欄：健康分、主要 CTA、ZIP／分享、主要問題。</li>
+            <li>右欄：全部交付檔案（可搜尋檔名）。</li>
+            <li>右側「最近任務」可一鍵回到某次報告；底部可「清除所有最近任務」（僅隱藏列表，不刪 <code>reports/</code>）。</li>
+          </ul>
+        </section>
+
+        <section id="crawl-settings">
+          <h2>爬取設定欄位</h2>
+          <table class="guide-table">
+            <thead>
+              <tr><th>欄位</th><th>說明</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>客戶網站網址</td><td>爬取起點，通常為首頁。失焦後會嘗試驗證連線。</td></tr>
+              <tr><td>客戶／專案名稱</td><td>顯示於任務列表與部分報告標題，建議填可辨識名稱。</td></tr>
+              <tr><td>模式</td><td><strong>HTTP</strong>：線上網站；<strong>檔案</strong>：本機 HTML 目錄（需填專案根目錄）。</td></tr>
+              <tr><td>最大頁數</td><td>上限受方案限制。可用「試跑 12 頁」「全站 500」快速套用。</td></tr>
+              <tr><td>爬取深度</td><td>從首頁起算連結深度，過大可能耗時很久。</td></tr>
+              <tr><td>不要爬的路徑</td><td>逗號分隔，例如 <code>/cart/, /admin/</code>。</td></tr>
+              <tr><td>快速匯入設定</td><td>載入範例 JSON 或上傳 <code>sitespider.json</code> 填入表單。</td></tr>
+            </tbody>
+          </table>
+          <p>快捷鍵：<kbd>⌘/Ctrl</kbd>+<kbd>Enter</kbd> 開始爬取；<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 切換步驟；<kbd>Esc</kbd> 回到設定。</p>
+        </section>
+
+        <section id="advanced">
+          <h2>進階選項（展開「進階選項」）</h2>
+          <table class="guide-table">
+            <thead>
+              <tr><th>選項</th><th>用途</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>並行執行緒</td><td>同時請求數，過高可能對目標站造成壓力。</td></tr>
+              <tr><td>Lighthouse 上限</td><td>抽樣跑 PageSpeed／Lighthouse 的頁數（需本機安裝 Node + lighthouse）。</td></tr>
+              <tr><td>遵守 robots.txt</td><td>建議保持勾選。</td></tr>
+              <tr><td>使用 sitemap</td><td>從 sitemap 發現更多 URL。</td></tr>
+              <tr><td>檢查外部連結</td><td>額外檢查站外連結狀態。</td></tr>
+              <tr><td>Lighthouse 速度</td><td>勾選後納入速度相關指標（需 Lighthouse 就緒）。</td></tr>
+              <tr><td>檢查 JSON-LD</td><td>結構化資料相關問題。</td></tr>
+              <tr><td>匯出 Excel</td><td>產生 Screaming Frog 風格多工作表 xlsx。</td></tr>
+              <tr><td>繁中交付報告</td><td>產生 <code>REPORT-zh.html</code> 等顧問交付檔（建議保持勾選）。</td></tr>
+              <tr><td>JavaScript 渲染</td><td>用 Playwright 渲染 SPA；需安裝 <code>sitespider[browser]</code>。</td></tr>
+              <tr><td>下載站內圖片</td><td>下載圖片供圖片稽核報告使用。</td></tr>
+              <tr><td>網址忽略 ? 參數</td><td>將 <code>?utm=</code> 等查詢字串視為同一頁。</td></tr>
+              <tr><td>先爬頁、後檢連結</td><td>加快首輪完成時間。</td></tr>
+              <tr><td>完成後開啟交付導覽</td><td>爬取結束自動開新分頁至 <code>REPORT-zh.html</code>。</td></tr>
+              <tr><td>自訂擷取</td><td>勾選 email、電話等預設，輸出 <code>custom.csv</code>。</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="delivery">
+          <h2>交付報告與檔案</h2>
+          <p>報告產出在 <code>reports/{tenant_id}/{job_id}/</code>（或扁平 <code>reports/{job_id}/</code>）。請透過開發伺服器網址開啟，路徑範例：<code>/reports/default/任務編號/REPORT-zh.html</code>。</p>
+          <h3>建議閱讀順序（給客戶）</h3>
+          <ol>
+            <li><strong>REPORT-zh.html</strong> — 交付導覽（總覽與連結）</li>
+            <li><strong>delivery-summary.html</strong> — 一頁摘要</li>
+            <li><strong>seo-briefs.html</strong> — 修復建議簡報</li>
+            <li><strong>dashboard.html</strong> — 圖表儀表板</li>
+            <li><strong>index.html</strong> — 技術分頁表格（類 SF）</li>
+          </ol>
+          <h3>客戶交付</h3>
+          <table class="guide-table">
+            <thead><tr><th>檔案</th><th>說明</th></tr></thead>
+            <tbody>
+              <tr><td>REPORT-zh.html</td><td>繁中交付導覽首頁</td></tr>
+              <tr><td>delivery-summary.html</td><td>一頁式摘要</td></tr>
+              <tr><td>seo-briefs.html</td><td>分頁面 SEO 建議</td></tr>
+              <tr><td>ai-hub.html</td><td>AI 產出總覽（需先跑 AI）</td></tr>
+              <tr><td>ai-page-copy.html</td><td>各頁 Title / Meta 建議</td></tr>
+              <tr><td>ai-faq.html</td><td>FAQ 與 Schema 預覽</td></tr>
+              <tr><td>priority_summary.md</td><td>修復優先順序（文字）</td></tr>
+              <tr><td>issue_heatmap.html</td><td>問題熱力圖 <span class="guide-plan-tag">方案</span></td></tr>
+            </tbody>
+          </table>
+          <h3>圖表與分析</h3>
+          <table class="guide-table">
+            <thead><tr><th>檔案</th><th>說明</th></tr></thead>
+            <tbody>
+              <tr><td>dashboard.html</td><td>健康分、索引、問題分佈圖表</td></tr>
+              <tr><td>index.html</td><td>Internal / Titles / Issues 等分頁</td></tr>
+              <tr><td>link_graph.html</td><td>2D 內鏈關係圖</td></tr>
+              <tr><td>link_graph_webgl.html</td><td>3D 內鏈圖 <span class="guide-plan-tag">Pro+</span></td></tr>
+              <tr><td>inspector.html</td><td>單頁 URL 檢視器</td></tr>
+              <tr><td>images-gallery.html</td><td>圖片尺寸、alt 稽核</td></tr>
+            </tbody>
+          </table>
+          <h3>下載與分享</h3>
+          <ul>
+            <li><strong>下載 ZIP</strong>：打包主要 HTML／CSV 交付檔。</li>
+            <li><strong>客戶單檔 HTML</strong>：單一離線摘要檔，客戶雙擊即可閱讀。</li>
+            <li><strong>分享連結</strong>：產生只讀 Portal（有效期限內免登入）<span class="guide-plan-tag">Free+</span>。</li>
+          </ul>
+          <p>報告頂欄：<strong>← 返回</strong>、<strong>⌂ 爬取中心</strong>（回到該任務的交付步驟）、第二行可切換各報告頁、<strong>↗ 檢視網站</strong> 開啟客戶 live 站。</p>
+        </section>
+
+        <section id="ai">
+          <h2>AI 文案功能</h2>
+          <p class="guide-callout">AI 使用<strong>您選擇的 LLM 平台 API 金鑰</strong>（OpenAI、Google Gemini、Anthropic 等），與 Search Console 憑證無關。</p>
+          <h3>設定方式</h3>
+          <ol>
+            <li>前往 <a href="/ai">AI 文案</a> 頁（或爬取中心右側連結）。</li>
+            <li>選擇 <strong>AI 平台</strong> 與 <strong>模型</strong>（可篩選模型名稱）。</li>
+            <li>填入該平台的 <strong>API 金鑰</strong>；可勾選「爬取完成後自動產生 AI 文案」。</li>
+            <li>按「儲存 AI 設定」。金鑰預設存於瀏覽器本機；伺服器亦可透過環境變數集中設定。</li>
+          </ol>
+          <h3>產生時機</h3>
+          <ul>
+            <li>爬取完成後，在步驟 3 按 <strong>✨ AI 文案</strong>。</li>
+            <li>或勾選自動產生，背景執行完成後可開 <code>ai-hub.html</code>。</li>
+            <li>「最近任務」中若已有 AI，會顯示 <strong>AI 交付</strong> 按鈕。</li>
+          </ul>
+          <h3>產出內容</h3>
+          <table class="guide-table">
+            <thead><tr><th>檔案</th><th>說明</th></tr></thead>
+            <tbody>
+              <tr><td>ai-hub.html</td><td>AI 交付總覽入口</td></tr>
+              <tr><td>ai-page-copy.html / .csv</td><td>各 URL 的 Title、Meta description 建議</td></tr>
+              <tr><td>ai-faq.html</td><td>常見問答與 JSON-LD 預覽</td></tr>
+              <tr><td>ai-faq-cms.html</td><td>給 CMS 貼上的 FAQ 區塊</td></tr>
+              <tr><td>llms.txt.draft</td><td>給 AI 搜尋／助理的網站說明草稿</td></tr>
+              <tr><td>ai-polish-meta.html</td><td>本次 AI 執行紀錄（模型、成功／失敗頁）</td></tr>
+            </tbody>
+          </table>
+          <p>方案額度：Starter 每月 1 次、Pro 15 次、Agency 60 次（見 <a href="/pricing">方案價格</a>）。用量可在 <a href="/workspace">帳號與方案</a> 查看。</p>
+        </section>
+
+        <section id="gsc">
+          <h2>Google Search Console（GSC）</h2>
+          <p class="guide-callout-warn guide-callout">
+            GSC 用於查詢 Google 已索引狀態與 Rich Results，需要<strong>Google Cloud 憑證</strong>，不是 Gemini API Key。
+          </p>
+          <h3>適用方案</h3>
+          <p>Pro、Agency 方案含 <strong>GSC Rich Results</strong> 檢查（見方案功能）。</p>
+          <h3>前置安裝</h3>
+          <pre style="margin:0.5rem 0;padding:0.75rem;background:var(--color-bg-subtle);border-radius:8px;font-size:0.8rem;overflow:auto"><code>pip install "sitespider[gsc]"
+# OAuth 方式還需 google-auth-oauthlib（通常已包含在 [gsc] 額外依賴）</code></pre>
+          <h3>憑證（二擇一）</h3>
+          <ol>
+            <li><strong>服務帳戶 JSON</strong>：在 Google Cloud 建立服務帳戶，下載 JSON，並在 Search Console 將該服務帳戶加為網站使用者。設定環境變數：
+              <code>GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json</code>
+              或 <code>GSC_CREDENTIALS_JSON</code> 指向同檔案。</li>
+            <li><strong>OAuth 用戶端</strong>：使用 Google Cloud「桌面應用程式」OAuth 用戶端 JSON。設定
+              <code>GSC_OAUTH_CLIENT_JSON=/path/to/client_secret.json</code>，首次執行爬取並啟用 GSC 時會開瀏覽器登入，token 存於
+              <code>~/.config/sitespider/gsc-oauth-token.json</code>。</li>
+          </ol>
+          <h3>在爬取中心啟用</h3>
+          <ol>
+            <li>展開<strong>進階選項</strong>。</li>
+            <li><strong>Search Console 檢查</strong>：填大於 0 的數字（例如 10），表示最多檢查幾個 URL。</li>
+            <li><strong>Search Console 資源網址</strong>：填 GSC 資源格式，通常與站點一致，例如 <code>https://www.example.com/</code>（網域資源或 URL 前綴須與 Console 內一致）。</li>
+            <li>設為 <strong>0</strong> 則完全不呼叫 GSC，其餘報告仍可正常產出。</li>
+          </ol>
+          <h3>產出</h3>
+          <ul>
+            <li><code>rich_results_gsc.csv</code> — 各 URL 的索引／複合式結果狀態。</li>
+            <li>報告內文可能註明本次 GSC 檢查筆數。</li>
+          </ul>
+        </section>
+
+        <section id="branding">
+          <h2>報告品牌</h2>
+          <p>路徑：<a href="/branding">報告品牌</a>。</p>
+          <ul>
+            <li><strong>Starter</strong>：<code>branding_lite</code> — 可在報告顯示顧問公司名稱。</li>
+            <li><strong>Agency</strong>：<code>white_label</code> — 可自訂 Logo URL、品牌色，完整白標。</li>
+          </ul>
+          <p>儲存後，新匯出的報告會套用；舊報告需重新匯出或手動替換才會更新外觀。</p>
+        </section>
+
+        <section id="workspace">
+          <h2>帳號、方案與用量</h2>
+          <p>路徑：<a href="/workspace">帳號與方案</a>。</p>
+          <ul>
+            <li><strong>租戶 ID（tenant_id）</strong>：多客戶／多專案時區分報告目錄，預設 <code>default</code>。</li>
+            <li><strong>方案</strong>：Free / Starter / Pro / Agency，影響每月爬取次數、頁數上限、AI 次數與功能開關。</li>
+            <li><strong>API 金鑰</strong>：若啟用多租戶 API，可填 Bearer token。</li>
+            <li>本機開發執行 <code>dev-ui.sh</code> 時通常略過配額（<code>SITESPIDER_SKIP_QUOTA=1</code>），並可重設本月用量（開發用）。</li>
+          </ul>
+          <p>完整價格與功能對照見 <a href="/pricing">方案價格</a>。</p>
+        </section>
+
+        <section id="sites">
+          <h2>多站儀表板</h2>
+          <p>路徑：<a href="/sites">多站儀表板</a> <span class="guide-plan-tag">Agency</span></p>
+          <p>彙整多個租戶／任務的健康分與趨勢，適合代理商同時維護多個客戶站點。需 <code>multi_tenant</code> 方案功能。</p>
+        </section>
+
+        <section id="schedule">
+          <h2>排程爬取</h2>
+          <p>在爬取中心右側（步驟 1 或 3 的交付小幫手區）展開 <strong>排程爬取</strong>，按「產生 cron 指令」<span class="guide-plan-tag">Pro+</span>。</p>
+          <p>會依目前 tenant、方案與設定檔路徑產生每週執行的 shell／cron 範例，可貼到伺服器 crontab 定期重跑並用「比對」追蹤回歸。</p>
+        </section>
+
+        <section id="compare">
+          <h2>報告比對</h2>
+          <p>在「最近任務」卡片上，若方案含 <strong>compare</strong>，且存在更早一筆完成任務，會顯示 <strong>比對</strong> 按鈕。</p>
+          <p>比對兩次 <code>crawl-report.json</code>，產生 <code>compare-report.html</code>，標示問題新增／解決與回歸項目。</p>
+        </section>
+
+        <section id="portal">
+          <h2>客戶分享連結</h2>
+          <p>步驟 3 按 <strong>🔗 分享連結</strong>，系統建立有時效的只讀 Portal（預設約 30 天）。</p>
+          <p>客戶無需安裝軟體，透過連結瀏覽交付導覽與允許的報告檔。連結會複製到剪貼簿。</p>
+        </section>
+
+        <section id="faq">
+          <h2>常見問題</h2>
+          <h3>為什麼報告開起來樣式跑版或沒有頂欄？</h3>
+          <p>請用 <code>http://127.0.0.1:8765/reports/…</code> 開啟，不要用檔案總管雙擊 HTML。舊匯出報告可重新爬取匯出以取得最新頂欄。</p>
+          <h3>首頁被導到舊任務步驟 3？</h3>
+          <p>網址勿帶舊的 <code>?job=</code>；點頂欄「＋ 新爬取」或開 <code>/?step=1</code>。</p>
+          <h3>Lighthouse／JS 渲染無法勾選？</h3>
+          <p>代表本機尚未安裝對應工具；步驟 1 上方黃色說明框有安裝指引，不影響一般爬取。</p>
+          <h3>AI 頁面顯示模型已下線？</h3>
+          <p>到 <a href="/ai">AI 文案</a> 改選建議模型或自訂模型名稱後重新儲存並產生。</p>
+        </section>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <a href="/" class="btn-cta primary">前往爬取中心</a>
+      <a href="/demo" class="btn-cta secondary">範例報告</a>
+      <a href="/pricing" class="btn-cta secondary">方案價格</a>
+    </div>
+  </div>
+
+  <script src="/ui/app-shell.js"></script>
+  <script src="/ui/nav-back.js"></script>
+  <script src="/ui/topnav.js"></script>
+  <script>
+    try {
+      if (window.SiteSpiderNav) SiteSpiderNav.render('guide');
+    } catch (e) {
+      console.error('nav render failed', e);
+    }
+    if (location.protocol !== 'file:' && window.fetch) {
+      fetch('/api/site', { method: 'GET' })
+        .catch(function () {
+          var el = document.getElementById('guide-server-warn');
+          if (el) el.hidden = false;
+        });
+    }
+  </script>
+</body>
+</html>

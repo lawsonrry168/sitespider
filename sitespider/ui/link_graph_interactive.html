@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Link Graph — {{SITE_URL}}</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <style>
+{{REPORT_PAGES_CSS}}
+{{LINK_GRAPH_CSS}}
+  </style>
+</head>
+<body>
+  {{REPORT_NAV}}
+  <div class="graph-toolbar">
+    <div>
+      <span class="graph-meta">D3 力導向 · {{NODE_COUNT}} 節點 · {{EDGE_COUNT}} 邊</span>
+    </div>
+    <div class="graph-controls">
+      <label>節點上限 <input type="range" id="nodeLimit" min="20" max="{{MAX_NODES}}" value="{{NODE_COUNT}}" step="5"></label>
+      <label><input type="checkbox" id="showNofollow"> 含 nofollow</label>
+      <label><input type="checkbox" id="showLabels" checked> 標籤</label>
+      <button type="button" class="graph-btn" id="resetZoom">重設縮放</button>
+      <a href="link_graph_simple.html" style="font-size:0.72rem;color:var(--muted)">簡易圖</a>
+    </div>
+  </div>
+  <div id="tip"></div>
+  <div id="graph-wrap"><svg id="svg"></svg></div>
+  <script>
+  const FULL_DATA = {{DATA_JSON}};
+
+  function nodeFill(score) {
+    const t = 0.2 + Math.min(0.8, (score || 0) * 2);
+    return d3.interpolateRgb('#2c3548', '#6ec9a0')(t);
+  }
+
+  const tip = document.getElementById('tip');
+  const svg = d3.select('#svg');
+  const wrap = document.getElementById('graph-wrap');
+  let simulation, gRoot, zoomBehavior;
+
+  function filterData(includeNofollow, nodeLimit) {
+    const nodes = FULL_DATA.nodes.slice(0, nodeLimit);
+    const ids = new Set(nodes.map(n => n.id));
+    const edges = FULL_DATA.edges.filter(e => {
+      if (!includeNofollow && e.nofollow) return false;
+      return ids.has(e.source) && ids.has(e.target);
+    });
+    return { nodes: nodes.map(n => ({...n})), edges };
+  }
+
+  function render(includeNofollow, nodeLimit, showLabels) {
+    const data = filterData(includeNofollow, nodeLimit);
+    svg.selectAll('*').remove();
+    const width = wrap.clientWidth;
+    const height = wrap.clientHeight;
+    const g = svg.append('g');
+    gRoot = g;
+    zoomBehavior = d3.zoom().scaleExtent([0.15, 4]).on('zoom', (ev) => g.attr('transform', ev.transform));
+    svg.call(zoomBehavior);
+
+    const links = data.edges.map(e => ({...e}));
+    const nodes = data.nodes.map(n => ({...n}));
+    simulation = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d => d.id).distance(55).strength(0.35))
+      .force('charge', d3.forceManyBody().strength(-120))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collision', d3.forceCollide().radius(d => 8 + Math.min(16, (d.score || 0) * 40)));
+
+    const link = g.append('g').attr('class', 'links')
+      .selectAll('line').data(links).join('line')
+      .attr('class', d => 'link' + (d.nofollow ? ' nofollow' : ''))
+      .attr('marker-end', 'url(#arrow)');
+
+    svg.append('defs').append('marker')
+      .attr('id', 'arrow').attr('viewBox', '0 -5 10 10')
+      .attr('refX', 14).attr('refY', 0)
+      .attr('markerWidth', 5).attr('markerHeight', 5)
+      .attr('orient', 'auto')
+      .append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', '#52525b');
+
+    const node = g.append('g').attr('class', 'nodes')
+      .selectAll('g').data(nodes).join('g').attr('class', 'node')
+      .call(d3.drag()
+        .on('start', (ev, d) => { if (!ev.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+        .on('drag', (ev, d) => { d.fx = ev.x; d.fy = ev.y; })
+        .on('end', (ev, d) => { if (!ev.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
+
+    node.append('circle')
+      .attr('r', d => 5 + Math.min(14, (d.score || 0) * 40))
+      .attr('fill', d => nodeFill(d.score));
+
+    node.append('text').attr('dy', d => 14 + Math.min(14, (d.score || 0) * 40))
+      .attr('text-anchor', 'middle').text(d => d.label)
+      .style('display', showLabels ? null : 'none');
+
+    node.on('mouseenter', (ev, d) => {
+      tip.style.display = 'block';
+      tip.innerHTML = `<strong>${d.label}</strong><br><a href="${d.id}">${d.id}</a><br>Link Score: ${d.score} · Inlinks: ${d.inlinks}`;
+    }).on('mousemove', ev => {
+      tip.style.left = (ev.clientX + 12) + 'px';
+      tip.style.top = (ev.clientY + 12) + 'px';
+    }).on('mouseleave', () => { tip.style.display = 'none'; });
+
+    simulation.on('tick', () => {
+      link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+      node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+  }
+
+  document.getElementById('nodeLimit').addEventListener('input', () => {
+    render(document.getElementById('showNofollow').checked,
+      +document.getElementById('nodeLimit').value,
+      document.getElementById('showLabels').checked);
+  });
+  document.getElementById('showNofollow').addEventListener('change', () => {
+    render(document.getElementById('showNofollow').checked,
+      +document.getElementById('nodeLimit').value,
+      document.getElementById('showLabels').checked);
+  });
+  document.getElementById('showLabels').addEventListener('change', (ev) => {
+    svg.selectAll('.node text').style('display', ev.target.checked ? null : 'none');
+  });
+  document.getElementById('resetZoom').addEventListener('click', () => {
+    svg.transition().duration(400).call(zoomBehavior.transform, d3.zoomIdentity);
+  });
+
+  render(false, {{NODE_COUNT}}, true);
+  window.addEventListener('resize', () => {
+    render(document.getElementById('showNofollow').checked,
+      +document.getElementById('nodeLimit').value,
+      document.getElementById('showLabels').checked);
+  });
+  </script>
+</body>
+</html>

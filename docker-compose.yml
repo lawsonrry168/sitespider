@@ -1,0 +1,23 @@
+services:
+  sitespider:
+    build: .
+    ports:
+      - "8765:8765"
+    environment:
+      SITESPIDER_HOST: "0.0.0.0"
+      SITESPIDER_PORT: "8765"
+      # 多租戶 API（JSON 字串或掛載檔案）
+      # SITESPIDER_API_KEYS: '{"sk_live_xxx":{"tenant":"demo","plan":"pro"}}'
+      # SERPAPI_KEY: ""
+      # STRIPE_SECRET_KEY: sk_live_...
+      # STRIPE_WEBHOOK_SECRET: whsec_...
+      SITESPIDER_PUBLIC_URL: https://spider.example.com
+      SITESPIDER_SMTP_HOST: smtp.example.com
+      SITESPIDER_SMTP_USER: ""
+      SITESPIDER_SMTP_PASS: ""
+      SITESPIDER_SMTP_FROM: noreply@example.com
+    volumes:
+      - ./reports:/app/reports
+      - ./.sitespider:/app/.sitespider
+      - ./examples:/app/examples:ro
+    restart: unless-stopped

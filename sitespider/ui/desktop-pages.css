@@ -1,0 +1,62 @@
+/* 桌面版 — 非爬取中心控制台頁（說明、方案、AI…） */
+
+html.ss-desktop body.app-console:not(.app-dashboard) .ss-workspace--page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+html.ss-desktop body.app-console:not(.app-dashboard) .ss-workspace--page > .topbar {
+  flex-shrink: 0;
+}
+
+html.ss-desktop body.app-console:not(.app-dashboard) .ss-workspace--page > .page-wrap,
+html.ss-desktop body.app-console:not(.app-dashboard) .ss-workspace--page > main,
+html.ss-desktop body.app-console:not(.app-dashboard) .ss-workspace--page > .layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+html.ss-desktop body.app-console:not(.app-dashboard) .page-wrap.content-page,
+html.ss-desktop body.app-console:not(.app-dashboard) .page-wrap.settings-page {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 1.5rem 2rem 3rem;
+  box-sizing: border-box;
+}
+
+html.ss-desktop body.app-console:not(.app-dashboard) .guide-page.page-wrap {
+  max-width: none;
+  padding: 1.5rem 2rem 3rem;
+}
+
+html.ss-desktop body.app-console:not(.app-dashboard) .guide-layout {
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  gap: 2rem;
+}
+
+html.ss-desktop body.app-console:not(.app-dashboard) .pricing-layout {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 56rem;
+}
+
+html.ss-desktop body.app-console:not(.app-dashboard) .topnav a[data-ss-link],
+html.ss-desktop body.app-console:not(.app-dashboard) .topnav .nav-more,
+html.ss-desktop body.app-console:not(.app-dashboard) .topnav .nav-back {
+  display: none !important;
+}
+
+html.ss-desktop body.app-console:not(.app-dashboard) .topbar .brand-sub {
+  display: none;
+}
+
+@media (min-width: 1440px) {
+  html.ss-desktop body.app-console:not(.app-dashboard) .page-wrap.content-page {
+    padding-left: 2.25rem;
+    padding-right: 2.25rem;
+  }
+}

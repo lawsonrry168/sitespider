@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL 檢視器 · {{START_URL}}</title>
+  <style>
+{{REPORT_PAGES_CSS}}
+    .inspector-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem 1.25rem 2.5rem;
+      display: grid;
+      grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+      gap: 1rem;
+      align-items: start;
+    }
+    @media (max-width: 800px) {
+      .inspector-wrap {
+        grid-template-columns: 1fr;
+      }
+      .url-list {
+        max-height: 42vh;
+      }
+    }
+    .inspector-wrap h1 {
+      font-size: 1.1rem;
+      margin: 0 0 0.25rem;
+    }
+    .inspector-sub {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .inspector-sub a { color: var(--accent); }
+    input[type="search"] {
+      width: 100%;
+      padding: 0.55rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      margin-bottom: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+    input[type="search"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+    .url-list {
+      max-height: min(70vh, calc(100dvh - 14rem));
+      overflow-y: auto;
+      font-size: 0.8rem;
+      overscroll-behavior: contain;
+    }
+    .inspector-wrap .card {
+      min-width: 0;
+    }
+    .detail {
+      overflow-x: auto;
+    }
+    .pairing-hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin: 0 0 0.75rem;
+      padding: 0.45rem 0.6rem;
+      border-radius: 8px;
+      border: 1px dashed var(--border);
+      background: var(--bg2);
+    }
+    .pairing-hint.warn {
+      border-color: rgba(232, 138, 138, 0.45);
+      color: var(--danger);
+    }
+    .url-item {
+      padding: 0.45rem 0.55rem;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      word-break: break-all;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+    }
+    .url-item:hover { background: rgba(255, 255, 255, 0.03); }
+    .url-item.active {
+      border-color: rgba(74, 222, 128, 0.35);
+      background: var(--accent-dim);
+    }
+    .url-item .st { color: var(--muted); font-size: 0.68rem; margin-top: 0.15rem; }
+    dl {
+      display: grid;
+      grid-template-columns: 9rem 1fr;
+      gap: 0.35rem 0.75rem;
+      font-size: 0.9rem;
+      margin: 0 0 1rem;
+    }
+    dt { color: var(--muted); font-family: var(--font-display); font-size: 0.72rem; }
+    dd { margin: 0; word-break: break-all; }
+    .detail h2 {
+      font-size: 0.72rem;
+      margin: 1rem 0 0.5rem;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    ul { margin: 0; padding-left: 1.1rem; font-size: 0.85rem; }
+    .issue { color: var(--danger); }
+    .empty { color: var(--muted); padding: 2rem; text-align: center; }
+    .score {
+      font-family: var(--font-display);
+      font-size: 2.25rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 0;
+    }
+    table.inlinks {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      margin-top: 0.5rem;
+    }
+    table.inlinks th, table.inlinks td {
+      border-bottom: 1px solid var(--border);
+      padding: 0.35rem 0.4rem;
+      text-align: left;
+    }
+    table.inlinks th {
+      color: var(--muted);
+      font-weight: 500;
+      font-family: var(--font-display);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    table.inlinks code { font-family: var(--font-mono); font-size: 0.68rem; }
+    .ai-panel {
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .ai-panel h2 { margin-top: 0; }
+    .ai-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 0.35rem 0.5rem;
+      margin-bottom: 0.65rem;
+      font-size: 0.82rem;
+    }
+    .ai-row code {
+      flex: 1 1 100%;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      background: var(--bg2);
+      padding: 0.45rem 0.55rem;
+      border-radius: 6px;
+      word-break: break-word;
+    }
+    .copy-btn {
+      font-size: 0.68rem;
+      padding: 0.28rem 0.55rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--accent-dim);
+      color: var(--accent);
+      cursor: pointer;
+      font-family: var(--font-display);
+    }
+    .copy-btn:hover { color: #86efac; }
+    .badge-ok { color: var(--accent); font-size: 0.65rem; font-family: var(--font-mono); }
+    .badge-bad { color: var(--danger); font-size: 0.65rem; font-family: var(--font-mono); }
+    .ai-empty { color: var(--muted); font-size: 0.82rem; }
+  </style>
+</head>
+<body class="report-body">
+  {{REPORT_NAV}}
+  <div class="inspector-wrap" id="main-content" tabindex="-1">
+    <aside class="card">
+      <h1>URL 清單</h1>
+      <p class="inspector-sub">{{START_URL}}</p>
+      <input type="search" id="q" placeholder="搜尋 URL / Title…" autocomplete="off">
+      <div class="url-list" id="list"></div>
+    </aside>
+    <main class="card detail" id="detail">
+      <p class="empty">請從左側選擇 URL</p>
+    </main>
+  </div>
+  <script id="pages-data" type="application/json">{{PAGES_JSON}}</script>
+  <script>
+    const DATA = JSON.parse(document.getElementById('pages-data').textContent);
+    const pages = DATA.pages || [];
+    const PAGE_BY_URL = Object.fromEntries(pages.map(p => [p.url, p]));
+    let active = null;
+    const AI_COPY = {};
+    const AI_FAQ = {};
+    const URL_INDEX = {};
+
+    function pageUrlAliases(url) {
+      const out = [];
+      const seen = new Set();
+      function add(u) {
+        if (!u || seen.has(u)) return;
+        seen.add(u);
+        out.push(u);
+      }
+      try {
+        const u = new URL(url);
+        u.hash = '';
+        add(u.href);
+        let path = u.pathname || '/';
+        if (path.endsWith('/index.html')) {
+          const base = path.slice(0, -'index.html'.length) || '/';
+          add(new URL(base, u.origin).href);
+          if (base !== '/') add(new URL(base.replace(/\/$/, '') || '/', u.origin).href);
+        }
+        if (path.endsWith('/') && path !== '/') {
+          add(new URL(path + 'index.html', u.origin).href);
+        }
+        if (path !== '/' && !path.endsWith('/')) {
+          add(new URL(path + '/', u.origin).href);
+          add(new URL(path + '/index.html', u.origin).href);
+        }
+        if (path === '/') {
+          add(new URL('/index.html', u.origin).href);
+        }
+      } catch (_) {
+        add(url);
+      }
+      return out;
+    }
+
+    function buildUrlIndex() {
+      pages.forEach(p => {
+        pageUrlAliases(p.url).forEach(alias => {
+          if (!URL_INDEX[alias]) URL_INDEX[alias] = p.url;
+        });
+        URL_INDEX[p.url] = p.url;
+      });
+    }
+
+    function resolvePageUrl(url) {
+      if (!url) return null;
+      if (PAGE_BY_URL[url]) return url;
+      for (const alias of pageUrlAliases(url)) {
+        if (URL_INDEX[alias]) return URL_INDEX[alias];
+      }
+      return null;
+    }
+
+    buildUrlIndex();
+
+    function copyText(btn, text) {
+      navigator.clipboard.writeText(text).then(() => {
+        const prev = btn.textContent;
+        btn.textContent = '已複製';
+        setTimeout(() => { btn.textContent = prev; }, 1200);
+      }).catch(() => prompt('複製：', text));
+    }
+
+    function bindCopyButtons(root) {
+      root.querySelectorAll('[data-copy-text]').forEach(btn => {
+        btn.onclick = () => copyText(btn, decodeURIComponent(btn.getAttribute('data-copy-text')));
+      });
+    }
+
+    function renderCopyRow(label, text, meta) {
+      if (!text) return '';
+      const badge = meta ? `<span class="${meta.ok ? 'badge-ok' : 'badge-bad'}">${meta.chars} 字</span>` : '';
+      const shown = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return `<div class="ai-row"><strong>${label}</strong> ${badge}<code>${shown}</code><button type="button" class="copy-btn" data-copy-text="${encodeURIComponent(text)}">複製</button></div>`;
+    }
+
+    let AI_META = null;
+
+    function renderAiPanel(url) {
+      const copy = AI_COPY[url];
+      const faq = AI_FAQ[url];
+      let pairingNote = '';
+      if ((copy && copy._rawUrl && copy._rawUrl !== url) || (faq && faq._rawUrl && faq._rawUrl !== url)) {
+        const raw = (copy && copy._rawUrl) || (faq && faq._rawUrl);
+        pairingNote = `<p class="pairing-hint">AI 回傳網址已對應至此頁：<code>${raw.replace(/</g,'&lt;')}</code></p>`;
+      }
+      if (!copy && !faq) {
+        const metaHint = AI_META
+          ? `<p class="inspector-sub">上次 AI：${(AI_META.provider_name||'').replace(/</g,'&lt;')} · ${(AI_META.model||'').replace(/</g,'&lt;')}</p>`
+          : '';
+        return `<div class="ai-panel"><h2>AI 建議</h2>${metaHint}<p class="ai-empty">尚無 AI 文案檔。請在爬取中心執行「產生 AI 文案」，或開啟 <a href="ai-hub.html">AI 交付總覽</a>。</p></div>`;
+      }
+      let html = '<div class="ai-panel"><h2>AI 建議</h2>' + pairingNote;
+      if (AI_META && (AI_META.provider_name || AI_META.model)) {
+        html += `<p class="inspector-sub">${(AI_META.provider_name||'').replace(/</g,'&lt;')} · ${(AI_META.model||'').replace(/</g,'&lt;')} · <a href="ai-hub.html">AI Hub</a></p>`;
+      }
+      if (copy) {
+        html += '<p class="inspector-sub">Title / Meta · <a href="ai-page-copy.html">全部</a></p>';
+        (copy.titles || []).forEach((t, i) => { html += renderCopyRow('Title ' + (i+1), t.text, t); });
+        (copy.metas || []).forEach((m, i) => { html += renderCopyRow('Meta ' + (i+1), m.text, m); });
+        if (copy.h1) html += renderCopyRow('H1', copy.h1);
+      }
+      if (faq && (faq.faqs || []).length) {
+        html += '<p class="inspector-sub" style="margin-top:0.75rem">FAQ · <a href="ai-faq-cms.html">CMS 貼上版</a></p>';
+        (faq.faqs || []).slice(0, 3).forEach(f => {
+          html += `<div class="ai-row"><strong>Q</strong><code>${(f.question||'').replace(/</g,'&lt;')}</code></div>`;
+        });
+        html += '<button type="button" class="copy-btn" data-copy-faq="' + encodeURIComponent(url) + '">複製 FAQ HTML</button>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    async function loadAiSidecars() {
+      try {
+        const [cRes, fRes, mRes] = await Promise.all([
+          fetch('ai-page-copy.json'),
+          fetch('ai-faq.json'),
+          fetch('ai-polish-meta.json'),
+        ]);
+        if (cRes.ok) {
+          const rows = await cRes.json();
+          (rows || []).forEach(r => {
+            const raw = (r && r.url) || '';
+            if (!raw) return;
+            const key = resolvePageUrl(raw) || raw;
+            AI_COPY[key] = Object.assign({}, r, { _rawUrl: raw !== key ? raw : '' });
+          });
+        }
+        if (fRes.ok) {
+          const rows = await fRes.json();
+          (rows || []).forEach(r => {
+            const raw = (r && r.url) || '';
+            if (!raw) return;
+            const key = resolvePageUrl(raw) || raw;
+            AI_FAQ[key] = Object.assign({}, r, { _rawUrl: raw !== key ? raw : '' });
+          });
+        }
+        if (mRes.ok) {
+          AI_META = await mRes.json();
+        }
+      } catch (_) {}
+      if (active) select(active);
+    }
+
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('[data-copy-faq]');
+      if (!btn) return;
+      const url = decodeURIComponent(btn.getAttribute('data-copy-faq'));
+      const faq = AI_FAQ[url];
+      if (!faq) return;
+      const items = (faq.faqs || []).map(f =>
+        `  <div class="faq-item"><h3 class="faq-question">${f.question}</h3><div class="faq-answer"><p>${f.answer}</p></div></div>`
+      ).join('\n');
+      const html = `<section class="faq-section" aria-label="常見問題">\n  <h2>常見問題</h2>\n${items}\n</section>`;
+      copyText(btn, html);
+    });
+
+    function shortUrl(u) {
+      try {
+        const p = new URL(u);
+        return (p.pathname || '/') + (p.search || '');
+      } catch { return u.length > 48 ? '…' + u.slice(-45) : u; }
+    }
+
+    function renderList(filter) {
+      const q = (filter || '').toLowerCase();
+      const list = document.getElementById('list');
+      list.innerHTML = '';
+      pages.filter(p => !q || p.url.toLowerCase().includes(q) || (p.title || '').toLowerCase().includes(q))
+        .slice(0, 500)
+        .forEach(p => {
+          const el = document.createElement('div');
+          el.className = 'url-item' + (active === p.url ? ' active' : '');
+          el.innerHTML = `<div>${shortUrl(p.url)}</div><div class="st">${p.status} · In ${p.inlinks} · Score ${p.link_score}</div>`;
+          el.onclick = () => select(p.url);
+          list.appendChild(el);
+        });
+    }
+
+    function select(url) {
+      const resolved = resolvePageUrl(url) || url;
+      active = resolved;
+      renderList(document.getElementById('q').value);
+      const p = PAGE_BY_URL[resolved];
+      if (!p) {
+        document.getElementById('detail').innerHTML =
+          '<p class="empty">找不到對應頁面資料，請從左側清單選擇 URL。</p>';
+        return;
+      }
+      const issues = (p.issues || []).map(i => `<li class="issue">${i.label}</li>`).join('') || '<li>無稽核問題</li>';
+      const details = p.inlink_details || [];
+      const inlinkTable = details.length
+        ? `<table class="inlinks"><thead><tr><th>來源</th><th>錨文字</th><th>Follow</th><th>版位</th></tr></thead><tbody>${
+          details.map(r => `<tr><td><code>${shortUrl(r.source)}</code></td><td>${r.anchor || '—'}</td><td>${r.follow}</td><td>${r.position}</td></tr>`).join('')
+        }</tbody></table>`
+        : '<p class="inspector-sub">無內鏈連入（或僅來自 sitemap）</p>';
+      document.getElementById('detail').innerHTML = `
+        <p class="score">${p.link_score}</p>
+        <p class="inspector-sub" style="margin-top:-0.25rem">Link Score（內部 PageRank，0–100）</p>
+        <dl>
+          <dt>URL</dt><dd><a href="${p.url}" target="_blank" rel="noopener">${p.url}</a></dd>
+          <dt>狀態碼</dt><dd>${p.status}</dd>
+          <dt>Indexability</dt><dd>${p.indexability}${p.indexability_status ? ' · ' + p.indexability_status : ''}</dd>
+          <dt>Title</dt><dd>${p.title || '—'}</dd>
+          <dt>Meta</dt><dd>${p.meta_description || '—'}</dd>
+          <dt>Canonical</dt><dd>${p.canonical || '—'}</dd>
+          <dt>深度</dt><dd>${p.depth}</dd>
+          <dt>Inlinks</dt><dd>${p.inlinks}</dd>
+          <dt>Outlinks</dt><dd>${p.outlinks}</dd>
+          <dt>字數</dt><dd>${p.word_count}</dd>
+          <dt>H1</dt><dd>${(p.h1 || []).join(' | ') || '—'}</dd>
+        </dl>
+        <h2>稽核問題</h2><ul>${issues}</ul>
+        <h2>內鏈來源（最多 80）</h2>${inlinkTable}
+        ${renderAiPanel(resolved)}
+      `;
+      bindCopyButtons(document.getElementById('detail'));
+    }
+
+    document.getElementById('q').addEventListener('input', e => renderList(e.target.value));
+    renderList('');
+    loadAiSidecars();
+    if (pages.length) select(pages[0].url);
+  </script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>報告品牌 — SiteSpider</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="/ui/tokens.css">
+  <link rel="stylesheet" href="/ui/shell.css">
+  <link rel="stylesheet" href="/ui/theme.css">
+  <link rel="stylesheet" href="/ui/comfort-display.css">
+  <link rel="stylesheet" href="/ui/polish.css">
+  <link rel="stylesheet" href="/ui/ux-friendly.css">
+  <link rel="stylesheet" href="/ui/site-reset.css">
+  <link rel="stylesheet" href="/ui/nav-back.css">
+  <link rel="stylesheet" href="/ui/settings-page.css">
+</head>
+<body class="app-console">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon" data-brand></div>
+      <div>
+        <p class="brand-title">SiteSpider</p>
+        <p class="brand-sub">SEO · GEO 顧問交付</p>
+      </div>
+    </div>
+    <nav class="topnav" data-ss-nav>
+      <button type="button" class="theme-toggle" title="切換主題">◑</button>
+    </nav>
+  </header>
+
+  <div class="page-wrap settings-page page-wrap--branding" id="main-content" tabindex="-1">
+    <header class="page-hero">
+      <h1 class="page-title">報告品牌</h1>
+      <p class="page-intro">客戶看到的交付報告將顯示<strong>您的公司名稱與 Logo</strong>。設定同步至伺服器（依方案權限）。</p>
+    </header>
+    <div id="brand-banner" class="ss-banner hidden"></div>
+
+    <div class="settings-grid">
+      <div class="card form-narrow">
+        <h2>品牌設定</h2>
+        <label for="tenant_id">租戶 ID</label>
+        <input type="text" id="tenant_id" value="default">
+        <label for="api_key">API 金鑰（選填）</label>
+        <input type="password" id="api_key" autocomplete="off">
+        <label for="consultant_name">公司 / 品牌名稱</label>
+        <input type="text" id="consultant_name" placeholder="例：Cal Digital Ltd">
+        <label for="logo_url" id="logo_label">Logo 圖片 URL</label>
+        <input type="text" id="logo_url" placeholder="https://your-site.com/logo.png">
+        <p class="status">HTTPS 公開可讀的 PNG / SVG（Agency 完整白標）</p>
+        <label for="accent_color" id="accent_label">報告主色</label>
+        <div class="color-row">
+          <input type="color" id="accent_picker" value="#6ec9a0">
+          <input type="text" id="accent_color" value="#6ec9a0">
+        </div>
+        <div class="settings-actions">
+          <button type="button" id="btn-save">儲存至伺服器</button>
+          <button type="button" class="secondary" id="btn-clear">清除</button>
+        </div>
+        <p class="status" id="save-status"></p>
+      </div>
+      <div>
+        <h2 class="preview-heading">即時預覽</h2>
+        <div class="brand-preview-wrap">
+          <div class="brand-preview-topbar">delivery-summary.html</div>
+          <div class="brand-preview-body">
+            <div id="preview"></div>
+            <div class="brand-preview-mock"></div>
+            <div class="brand-preview-mock short"></div>
+            <div class="brand-preview-mock accent"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/ui/app-shell.js"></script>
+  <script src="/ui/console-store.js"></script>
+  <script src="/ui/nav-back.js"></script>
+  <script src="/ui/topnav.js"></script>
+  <script>
+    SiteSpiderNav.render('branding');
+    var nameEl = document.getElementById('consultant_name');
+    var logoEl = document.getElementById('logo_url');
+    var accentEl = document.getElementById('accent_color');
+    var pickerEl = document.getElementById('accent_picker');
+    var brandState = { can_edit: true, white_label: false, branding_lite: false };
+
+    function toast(msg, type) {
+      if (window.SiteSpiderShell && SiteSpiderShell.toast) SiteSpiderShell.toast(msg, type || 'info');
+      else alert(msg);
+    }
+    function authHeaders(extra) {
+      var h = Object.assign({}, extra || {});
+      var key = document.getElementById('api_key').value.trim();
+      if (key) h.Authorization = 'Bearer ' + key;
+      return h;
+    }
+    function readForm() {
+      return {
+        consultant_name: nameEl.value.trim(),
+        logo_url: logoEl.value.trim(),
+        accent_color: accentEl.value.trim() || ConsoleStore.DEFAULT_ACCENT,
+      };
+    }
+    function fillForm(b) {
+      nameEl.value = b.consultant_name || '';
+      logoEl.value = b.logo_url || '';
+      accentEl.value = b.accent_color || ConsoleStore.DEFAULT_ACCENT;
+      pickerEl.value = accentEl.value;
+      document.getElementById('preview').innerHTML = ConsoleStore.previewHeaderHtml(b);
+    }
+    function applyPlanGates() {
+      logoEl.disabled = !brandState.white_label;
+      pickerEl.disabled = !brandState.white_label;
+      accentEl.disabled = !brandState.white_label;
+      document.getElementById('btn-save').disabled = !brandState.can_edit;
+      if (!brandState.can_edit) {
+        SiteSpiderShell.showBanner('brand-banner', '報告品牌需 Starter（署名）或 Agency（完整白標）方案。', 'warn');
+      } else if (brandState.branding_lite && !brandState.white_label) {
+        SiteSpiderShell.showBanner('brand-banner', 'Starter 僅支援公司名稱署名；Logo 與主色需升級 Agency。', 'info');
+      } else {
+        SiteSpiderShell.clearBanner('brand-banner');
+      }
+    }
+    async function loadFromServer() {
+      var tid = document.getElementById('tenant_id').value.trim() || 'default';
+      ConsoleStore.savePartial({
+        tenant_id: tid,
+        api_key: document.getElementById('api_key').value.trim(),
+      });
+      var res = await fetch('/api/branding?tenant_id=' + encodeURIComponent(tid), { headers: authHeaders() });
+      var d = await res.json();
+      if (!res.ok || d.error) {
+        toast(d.error || '載入失敗', 'error');
+        return;
+      }
+      brandState = {
+        can_edit: !!d.can_edit,
+        white_label: !!d.white_label,
+        branding_lite: !!d.branding_lite,
+      };
+      fillForm(d.branding || ConsoleStore.loadBranding());
+      ConsoleStore.savePartial(d.branding || {});
+      applyPlanGates();
+    }
+    [nameEl, logoEl, accentEl].forEach(function (el) {
+      el.addEventListener('input', function () {
+        document.getElementById('preview').innerHTML = ConsoleStore.previewHeaderHtml(readForm());
+      });
+    });
+    pickerEl.addEventListener('input', function () {
+      accentEl.value = pickerEl.value;
+      document.getElementById('preview').innerHTML = ConsoleStore.previewHeaderHtml(readForm());
+    });
+    document.getElementById('btn-save').onclick = async function () {
+      var tid = document.getElementById('tenant_id').value.trim() || 'default';
+      var res = await fetch('/api/branding', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ tenant_id: tid, branding: readForm() }),
+      });
+      var d = await res.json();
+      if (!res.ok || d.error) {
+        toast(d.error || '儲存失敗', 'error');
+        return;
+      }
+      ConsoleStore.savePartial(d.branding || readForm());
+      document.getElementById('save-status').textContent = '已同步至伺服器';
+      toast('品牌設定已儲存', 'success');
+    };
+    document.getElementById('btn-clear').onclick = async function () {
+      if (!confirm('清除白標？')) return;
+      nameEl.value = '';
+      logoEl.value = '';
+      accentEl.value = ConsoleStore.DEFAULT_ACCENT;
+      pickerEl.value = accentEl.value;
+      document.getElementById('preview').innerHTML = ConsoleStore.previewHeaderHtml(readForm());
+      document.getElementById('btn-save').click();
+    };
+    ConsoleStore.applyToDocument();
+    document.getElementById('tenant_id').value = ConsoleStore.loadWorkspace().tenant_id;
+    document.getElementById('api_key').value = ConsoleStore.loadWorkspace().api_key;
+    loadFromServer();
+    window.addEventListener('pageshow', loadFromServer);
+  </script>
+</body>
+</html>

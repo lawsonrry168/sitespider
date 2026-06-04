@@ -36,11 +36,10 @@ pip install -e ".[dev]"
    ```
 
 4. **待辦功能（可選）**
-   - [ ] 發布至 PyPI：`pip install sitespider`
-   - [ ] 匯出 Screaming Frog 風格 Excel
-   - [ ] 圖表：內鏈深度分佈、狀態碼圓餅圖
-   - [ ] `sitespider init` 在專案內產生 GitHub Actions 範本
-   - [ ] 自訂網域 / base URL 設定檔（取代寫死在 sitemap）
+   - [x] PyPI 發布流程 + [docs/RELEASE.md](docs/RELEASE.md)
+   - [x] Excel、`sitespider.json` / `sitespider.yaml`、`sitespider compare`
+   - [x] viewport、redirect_chain、redirects.csv、Web UI 讀設定檔
+   - [ ] 手動在 PyPI 註冊套件名並完成 trusted publishing 首次設定
 
 5. **與 cal 示範站分離**
    - SiteSpider 程式碼只在 **本 repo**

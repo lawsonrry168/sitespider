@@ -1,0 +1,20 @@
+# SiteSpider 專案設定（需 pip install "sitespider[yaml]"）
+site_url: https://www.example.com/
+sitemap_path_prefixes: []
+
+mode: file
+output: reports
+
+crawl:
+  max_pages: 500
+  max_depth: 10
+  workers: 4
+  respect_robots: true
+  use_sitemap: true
+
+audit:
+  require_json_ld: false
+  thin_content_min_words: 300
+
+report:
+  xlsx: true

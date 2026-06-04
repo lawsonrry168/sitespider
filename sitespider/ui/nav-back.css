@@ -1,0 +1,111 @@
+/* 共用「返回」按鈕（控制台 + 報告） */
+.ss-back,
+.nav-back {
+  font: inherit;
+  font-family: var(--font-display, inherit);
+  font-size: var(--text-sm, 0.78rem);
+  font-weight: 500;
+  padding: 0.42rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border, var(--border, #27272a));
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--color-text-muted, var(--muted, #71717a));
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.ss-back:hover,
+.nav-back:hover {
+  border-color: var(--color-border-glow, var(--accent, #6ec9a0));
+  color: var(--color-text, var(--text, #fafafa));
+  background: var(--color-accent-muted, var(--accent-dim, rgba(110, 201, 160, 0.12)));
+}
+
+.report-topbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.report-topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.report-topbar .ss-console-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--accent, #6ec9a0);
+  border: 1px solid rgba(110, 201, 160, 0.35);
+  background: var(--accent-dim, rgba(110, 201, 160, 0.12));
+  white-space: nowrap;
+}
+
+.report-topbar .ss-console-home:hover {
+  color: #8eddb6;
+  border-color: var(--accent, #6ec9a0);
+  background: rgba(110, 201, 160, 0.18);
+}
+
+.report-topbar .report-brand-block {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.report-topbar .report-brand-mark {
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.report-topbar .report-brand {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-topbar .report-topbar-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 舊版報告：整塊 Logo 包在 report-brand-home 內，避免與返回鈕重疊 */
+.report-topbar-row > a.report-brand-home {
+  display: flex;
+  flex: 1 1 12rem;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  max-width: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.report-topbar-row > a.report-brand-home .report-brand-block {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.report-topbar-row > button.ss-back,
+.report-topbar-row > a.ss-back {
+  flex-shrink: 0;
+}
+
+.topnav .nav-back {
+  margin-right: 0.15rem;
+}

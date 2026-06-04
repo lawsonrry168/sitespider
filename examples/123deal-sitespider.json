@@ -1,0 +1,19 @@
+{
+  "site_url": "https://123deal.com.hk/",
+  "mode": "http",
+  "client_label": "123deal.com.hk",
+  "client_report": true,
+  "crawl": {
+    "max_pages": 500,
+    "max_depth": 8,
+    "workers": 6,
+    "exclude_paths": ["/wp-json/", "/checkout/", "/cart/", "/my-account/"]
+  },
+  "audit": {
+    "thin_content_min_words": 300,
+    "json_ld_rules": [
+      { "path_contains": "/product/", "types": ["Product"] },
+      { "path_contains": "/product-category/", "types": ["CollectionPage", "ItemList"] }
+    ]
+  }
+}

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SEO 報告 · 客戶專區</title>
+  <link rel="stylesheet" href="/ui/tokens.css">
+  <link rel="stylesheet" href="/ui/shell.css">
+  <link rel="stylesheet" href="/ui/theme.css">
+  <link rel="stylesheet" href="/ui/comfort-display.css">
+  <link rel="stylesheet" href="/ui/polish.css">
+  <link rel="stylesheet" href="/ui/ux-friendly.css">
+  <link rel="stylesheet" href="/ui/site-reset.css">
+  <link rel="stylesheet" href="/ui/nav-back.css">
+  <link rel="stylesheet" href="/ui/report-pages.css">
+  <link rel="stylesheet" href="/ui/report-layout.css">
+</head>
+<body class="portal-page">
+  <a class="skip-link" href="#main-content">跳至主要內容</a>
+  <header class="report-topbar">
+    <div class="report-topbar-row report-topbar-context">
+      <div class="report-topbar-actions">
+        <button type="button" class="ss-back" data-ss-back data-fallback="/" title="返回上一頁">← 返回</button>
+      </div>
+      <div class="report-brand-block">
+        <div class="report-brand"><span>SiteSpider</span> · 客戶報告專區</div>
+      </div>
+    </div>
+  </header>
+  <script src="/ui/nav-back.js"></script>
+  <main class="portal-wrap" id="main-content" tabindex="-1">
+    <h1 id="title">載入中…</h1>
+    <p class="lead" id="subtitle">只讀報告連結，無需登入。</p>
+    <p class="demo-primary"><a id="link-guide" href="#">▸ 交付導覽</a></p>
+    <div id="groups"></div>
+    <p class="status portal-err hidden" id="err"></p>
+  </main>
+  <script>
+    const parts = location.pathname.split('/').filter(Boolean);
+    const token = parts[1] || '';
+    const base = '/portal/' + token + '/';
+
+    async function load() {
+      const errEl = document.getElementById('err');
+      try {
+        const res = await fetch('/api/portal/' + token + '/manifest');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '連結無效或已過期');
+        document.getElementById('title').textContent = data.label || 'SEO 報告';
+        let sub = '建議從「交付導覽」開始閱讀。';
+        if (data.expires_at) {
+          const exp = new Date(data.expires_at * 1000);
+          sub += ' 連結有效至 ' + exp.toLocaleString('zh-TW', { dateStyle: 'medium', timeStyle: 'short' }) + '。';
+        }
+        document.getElementById('subtitle').textContent = sub;
+        document.getElementById('link-guide').href = base + 'REPORT-zh.html';
+        const host = document.getElementById('groups');
+        host.innerHTML = '';
+        const groups = data.groups && data.groups.length ? data.groups : [{ name: '交付', files: data.files || [] }];
+        groups.forEach(function (g) {
+          if (!g.files || !g.files.length) return;
+          const sec = document.createElement('div');
+          sec.className = 'portal-section';
+          const h2 = document.createElement('h2');
+          h2.textContent = g.name;
+          sec.appendChild(h2);
+          const grid = document.createElement('div');
+          grid.className = 'portal-grid link-grid';
+          g.files.forEach(function (f) {
+            const a = document.createElement('a');
+            a.href = base + f.file;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            const strong = document.createElement('strong');
+            strong.textContent = f.title;
+            a.appendChild(strong);
+            const em = document.createElement('em');
+            em.textContent = f.file;
+            a.appendChild(em);
+            grid.appendChild(a);
+          });
+          sec.appendChild(grid);
+          host.appendChild(sec);
+        });
+        if (!groups.some(function (g) { return g.files && g.files.length; })) {
+          host.innerHTML = '<p class="empty-hint">尚無可預覽檔案</p>';
+        }
+      } catch (e) {
+        document.getElementById('title').textContent = '無法開啟報告';
+        errEl.textContent = e.message;
+        errEl.classList.remove('hidden');
+        document.getElementById('groups').innerHTML = '';
+      }
+    }
+    load();
+  </script>
+</body>
+</html>

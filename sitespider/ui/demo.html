@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>範例報告 — SiteSpider</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="/ui/tokens.css">
+  <link rel="stylesheet" href="/ui/shell.css">
+  <link rel="stylesheet" href="/ui/theme.css">
+  <link rel="stylesheet" href="/ui/comfort-display.css">
+  <link rel="stylesheet" href="/ui/polish.css">
+  <link rel="stylesheet" href="/ui/ux-friendly.css">
+  <link rel="stylesheet" href="/ui/site-reset.css">
+  <link rel="stylesheet" href="/ui/nav-back.css">
+  <link rel="stylesheet" href="/ui/content-page.css">
+</head>
+<body class="app-console">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon" data-brand></div>
+      <div>
+        <p class="brand-title">SiteSpider</p>
+        <p class="brand-sub">SEO · GEO 顧問交付</p>
+      </div>
+    </div>
+    <nav class="topnav" data-ss-nav>
+      <button type="button" class="theme-toggle" title="切換主題">◑</button>
+    </nav>
+  </header>
+
+  <div class="page-wrap page-wrap--demo" id="main-content" tabindex="-1">
+    <header class="page-hero">
+      <h1 class="page-title" id="title">載入中…</h1>
+      <p class="page-intro" id="intro">123deal.com.hk 輕量試爬範例，無需登入即可預覽完整交付格式。</p>
+    </header>
+
+    <div class="card hidden" id="demo-card">
+      <div class="demo-hero">
+        <div class="demo-score hidden" id="score-ring">—</div>
+        <div>
+          <p class="site-line" id="site-line"></p>
+          <p class="demo-meta" id="stats-line"></p>
+          <p class="demo-meta" id="portal-line"></p>
+        </div>
+      </div>
+      <p class="status">建議從「交付導覽」開始；各報告頁已統一頂欄與返回按鈕。</p>
+      <div class="demo-primary">
+        <a id="link-guide" href="#">▸ 開啟交付導覽</a>
+      </div>
+      <div id="groups"></div>
+      <div class="demo-actions">
+        <a href="/" class="btn-cta primary">建立自己的爬取</a>
+        <a href="/workspace" class="btn-cta secondary">帳號與方案</a>
+      </div>
+    </div>
+
+    <div class="card hidden" id="missing-card">
+      <p class="demo-err">尚無範例報告。</p>
+      <p class="status">在本機專案根目錄執行：</p>
+      <pre class="mono empty-hint" id="hint-cmd" style="white-space:pre-wrap;text-align:left"></pre>
+    </div>
+  </div>
+
+  <script src="/ui/app-shell.js"></script>
+  <script src="/ui/nav-back.js"></script>
+  <script src="/ui/topnav.js"></script>
+  <script>
+    SiteSpiderNav.render('demo');
+
+    function renderLink(base, f) {
+      const a = document.createElement('a');
+      a.href = base + f.file;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      const strong = document.createElement('strong');
+      strong.textContent = f.title;
+      a.appendChild(strong);
+      const em = document.createElement('em');
+      em.textContent = f.file;
+      a.appendChild(em);
+      if (f.desc) {
+        const sp = document.createElement('span');
+        sp.className = 'desc';
+        sp.textContent = f.desc;
+        a.appendChild(sp);
+      }
+      return a;
+    }
+
+    async function load() {
+      let res;
+      try {
+        res = await fetch('/api/demo');
+      } catch (e) {
+        document.getElementById('title').textContent = '無法連線';
+        document.getElementById('missing-card').classList.remove('hidden');
+        document.getElementById('hint-cmd').textContent =
+          '請確認已執行：./scripts/dev-ui.sh  或  sitespider --ui --port 8765';
+        return;
+      }
+      const d = await res.json();
+      if (!d.available) {
+        document.getElementById('title').textContent = '範例報告未就緒';
+        document.getElementById('missing-card').classList.remove('hidden');
+        document.getElementById('hint-cmd').textContent = d.hint || '';
+        return;
+      }
+      const base = d.report_base || '/reports/demo/';
+      document.getElementById('title').textContent = d.label || '範例報告';
+      document.getElementById('demo-card').classList.remove('hidden');
+      document.getElementById('site-line').textContent = d.site_url || '';
+      let stats = (d.pages != null ? d.pages + ' 頁' : '');
+      if (d.duration_sec != null) stats += (stats ? ' · ' : '') + d.duration_sec + 's';
+      if (d.health_score != null) {
+        stats += (stats ? ' · ' : '') + '健康分 ' + d.health_score;
+        if (d.health_grade) stats += '（' + d.health_grade + '）';
+      }
+      if (d.has_ai) stats += (stats ? ' · ' : '') + '含 AI 文案範例';
+      else stats += (stats ? ' · ' : '') + '（未含 AI 文案，可於爬取中心產生）';
+      document.getElementById('stats-line').textContent = stats;
+
+      const guide = document.getElementById('link-guide');
+      guide.href = base + 'REPORT-zh.html';
+
+      if (d.portal_path) {
+        const pl = document.getElementById('portal-line');
+        const a = document.createElement('a');
+        a.href = d.portal_path;
+        a.textContent = '客戶分享連結';
+        pl.appendChild(a);
+        if (d.portal_expires_at) {
+          const exp = new Date(d.portal_expires_at * 1000);
+          pl.appendChild(document.createTextNode(
+            ' · 有效至 ' + exp.toLocaleString('zh-TW', { dateStyle: 'medium' })
+          ));
+        }
+      }
+
+      if (d.health_score != null) {
+        const ring = document.getElementById('score-ring');
+        ring.textContent = d.health_score;
+        ring.classList.remove('hidden');
+      }
+
+      const host = document.getElementById('groups');
+      const groups = (d.groups && d.groups.length) ? d.groups : [{ name: '交付', files: d.files || [] }];
+      if (!groups.some(function (g) { return g.files && g.files.length; })) {
+        host.innerHTML = '<p class="empty-hint">找不到可預覽檔案。請在專案根目錄執行 ./scripts/regen-demo-report.sh</p>';
+        return;
+      }
+      groups.forEach(function (g) {
+        if (!g.files || !g.files.length) return;
+        const sec = document.createElement('div');
+        sec.className = 'demo-section';
+        const h2 = document.createElement('h2');
+        h2.textContent = g.name;
+        sec.appendChild(h2);
+        const grid = document.createElement('div');
+        grid.className = 'demo-links link-grid';
+        g.files.forEach(function (f) { grid.appendChild(renderLink(base, f)); });
+        sec.appendChild(grid);
+        host.appendChild(sec);
+      });
+    }
+    load();
+  </script>
+</body>
+</html>

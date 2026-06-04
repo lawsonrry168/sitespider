@@ -55,6 +55,27 @@ def parse_sitemap_xml(content: str, base_url: str) -> list[str]:
     return urls
 
 
+def _strip_path_prefixes(path: str, prefixes: tuple[str, ...]) -> str:
+    path = path.lstrip("/")
+    for raw in prefixes:
+        prefix = raw if raw.endswith("/") else f"{raw.strip('/')}/"
+        if path.startswith(prefix):
+            return path[len(prefix) :]
+    return path
+
+
+def _http_url_to_local_path(
+    url: str,
+    site_root: Path,
+    *,
+    path_prefixes: tuple[str, ...] = (),
+) -> Path | None:
+    path = urlparse(url).path.lstrip("/")
+    path = _strip_path_prefixes(path, path_prefixes)
+    fp = site_root / path
+    return fp if fp.exists() else None
+
+
 def fetch_sitemap_urls(
     base_url: str,
     *,
@@ -62,7 +83,8 @@ def fetch_sitemap_urls(
     mode: str = "http",
     session: requests.Session | None = None,
     extra_sitemap_urls: list[str] | None = None,
-    user_agent: str = "VitaPure-SEO-Crawler/1.0",
+    user_agent: str = "SiteSpider/1.0",
+    path_prefixes: tuple[str, ...] = (),
 ) -> tuple[list[str], list[str]]:
     """
     回傳 (page_urls, errors)。
@@ -82,7 +104,11 @@ def fetch_sitemap_urls(
             errors.append(f"找不到 {local}")
     else:
         p = urlparse(base_url)
-        seeds.insert(0, f"{p.scheme}://{p.netloc}/sitemap.xml")
+        origin = f"{p.scheme}://{p.netloc}"
+        for path in ("/sitemap.xml", "/sitemap_index.xml", "/sitemap-index.xml"):
+            candidate = origin + path
+            if candidate not in seeds:
+                seeds.append(candidate)
 
     def process_sitemap(sitemap_url: str, depth: int) -> None:
         if sitemap_url in seen_sitemaps or depth > 3:
@@ -117,14 +143,13 @@ def fetch_sitemap_urls(
     for s in seeds:
         process_sitemap(s, 0)
 
-    # file 模式：將相對路徑轉為 file://
     if mode == "file" and site_root:
         normalized: list[str] = []
         for u in page_urls:
             if u.startswith("file:"):
                 normalized.append(u)
             elif u.startswith("http"):
-                fp = _http_url_to_local_path(u, site_root)
+                fp = _http_url_to_local_path(u, site_root, path_prefixes=path_prefixes)
                 if fp:
                     normalized.append(fp.as_uri())
             else:
@@ -136,15 +161,11 @@ def fetch_sitemap_urls(
     return list(dict.fromkeys(page_urls)), errors
 
 
-def _http_url_to_local_path(url: str, site_root: Path) -> Path | None:
-    path = urlparse(url).path.lstrip("/")
-    if path.startswith("cal/"):
-        path = path[4:]
-    fp = site_root / path
-    return fp if fp.exists() else None
-
-
-def file_urls_from_sitemap(site_root: Path) -> list[str]:
+def file_urls_from_sitemap(
+    site_root: Path,
+    *,
+    path_prefixes: tuple[str, ...] = (),
+) -> list[str]:
     path = site_root / "sitemap.xml"
     if not path.exists():
         return []
@@ -154,7 +175,7 @@ def file_urls_from_sitemap(site_root: Path) -> list[str]:
     out: list[str] = []
     for u in raw:
         if u.startswith("http"):
-            fp = _http_url_to_local_path(u, site_root)
+            fp = _http_url_to_local_path(u, site_root, path_prefixes=path_prefixes)
         elif u.startswith("file:"):
             fp = Path(urlparse(u).path)
         else:
