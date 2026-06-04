@@ -20,5 +20,9 @@ def test_parse_sitemap_xml():
 
 def test_http_url_to_local_path(tmp_path: Path):
     (tmp_path / "index.html").write_text("<html></html>")
-    fp = _http_url_to_local_path("https://x.github.io/cal/index.html", tmp_path)
+    fp = _http_url_to_local_path(
+        "https://x.github.io/cal/index.html",
+        tmp_path,
+        path_prefixes=("cal/",),
+    )
     assert fp is not None and fp.name == "index.html"

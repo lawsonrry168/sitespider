@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SiteSpider SEO 分析儀表板 — {{SITE_LABEL}}">
+  <title>{{SITE_LABEL}} · SEO 分析儀表板</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <style>
+{{ANALYTICS_THEME_CSS}}
+  </style>
+</head>
+<body>
+  {{REPORT_TOPBAR}}
+  <div class="analytics-toolbar no-print">
+    <button type="button" onclick="window.print()">列印 / PDF</button>
+    <a href="SEO-AUDIT-zh.md">繁中摘要</a>
+    <a href="issues.csv">Issues CSV</a>
+  </div>
+
+  <section class="hero">
+    <div class="score-card">
+      <div class="score-top">
+        <div class="ring-wrap">
+          <svg width="96" height="96" viewBox="0 0 100 100">
+            <circle class="ring-bg" cx="50" cy="50" r="45"/>
+            <circle class="ring-fg {{HEALTH_CLASS}}" cx="50" cy="50" r="45"
+              stroke-dasharray="283" stroke-dashoffset="{{HEALTH_OFFSET}}"/>
+          </svg>
+          <div class="ring-label {{HEALTH_CLASS}}">
+            <span class="num">{{HEALTH_SCORE}}</span>
+            <span class="grade">{{HEALTH_GRADE}}</span>
+          </div>
+        </div>
+        <div class="score-meta">
+          <span class="grade-badge {{HEALTH_CLASS}}">{{HEALTH_GRADE}} · {{HEALTH_GRADE_LABEL}}</span>
+          <h2>技術 SEO 健康分</h2>
+          <p>{{SUMMARY}}</p>
+        </div>
+      </div>
+      <div class="score-breakdown">{{SCORE_BARS}}</div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="val">{{URL_COUNT}}</div><div class="lbl">已爬取 URL</div></div>
+      <div class="kpi"><div class="val {{INDEXABLE_CLASS}}">{{INDEXABLE_PCT}}%</div>
+        <div class="lbl">Indexable</div><div class="hint">搜尋可索引</div></div>
+      <div class="kpi"><div class="val">{{STATUS_OK_PCT}}%</div>
+        <div class="lbl">HTTP 200</div><div class="hint">回應正常</div></div>
+      <div class="kpi"><div class="val warn">{{NON_INDEXABLE}}</div><div class="lbl">Non-Indexable</div></div>
+      <div class="kpi"><div class="val bad">{{N404}}</div><div class="lbl">404 錯誤</div></div>
+      <div class="kpi"><div class="val warn">{{CANON_COUNT}}</div><div class="lbl">Canonicalised</div></div>
+      <div class="kpi"><div class="val warn">{{PAGES_ISSUES}}</div><div class="lbl">有問題頁</div></div>
+      <div class="kpi"><div class="val">{{ISSUE_TYPES}}</div><div class="lbl">問題類型</div></div>
+      <div class="kpi"><div class="val">{{AVG_MS}}</div><div class="lbl">平均 ms</div></div>
+    </div>
+  </section>
+
+  <div class="tabs-wrap">
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab active" data-panel="overview">概覽</button>
+      <button type="button" class="tab" data-panel="index">索引與狀態</button>
+      <button type="button" class="tab" data-panel="onpage">On-Page</button>
+      <button type="button" class="tab" data-panel="issues">問題清單 <span class="badge">{{ISSUE_TYPES}}</span></button>
+    </div>
+
+    <div id="overview" class="panel active">
+      <p class="section-label">建議優先處理</p>
+      <div class="actions">{{ACTIONS}}</div>
+      <p class="section-label">GEO 就緒度（可被 AI 引用）</p>
+      <div class="chart-grid">
+        <div class="card"><h3>平均 GEO 分數</h3><div class="big-num">{{GEO_AVG}}</div><div class="hint">0–100（粗略）</div></div>
+        <div class="card wide"><h3>GEO 分數分佈</h3><canvas id="chart-geo"></canvas></div>
+        <div class="card"><h3>llms.txt</h3><div class="hint">{{LLMS_TXT}}</div></div>
+        <div class="card"><h3>llms-full.txt</h3><div class="hint">{{LLMS_FULL}}</div></div>
+      </div>
+      <p class="section-label">優先修復 URL（Top 10）</p>
+      <div class="card wide">{{PRIORITY_PAGES}}</div>
+      <p class="section-label">問題分佈</p>
+      <div class="chart-grid">
+        <div class="card wide tall"><h3>問題類型 Top 12</h3><canvas id="chart-issues"></canvas></div>
+        <div class="card"><h3>Indexability</h3><canvas id="chart-indexability"></canvas></div>
+        <div class="card"><h3>HTTP 狀態碼</h3><canvas id="chart-status"></canvas></div>
+        {{LH_BLOCK}}
+      </div>
+    </div>
+
+    <div id="index" class="panel">
+      <p class="section-label">索引與爬取</p>
+      <div class="chart-grid">
+        <div class="card wide"><h3>Non-Indexable 原因</h3><canvas id="chart-idx-status"></canvas></div>
+        <div class="card"><h3>Indexability</h3><canvas id="chart-indexability-2"></canvas></div>
+        <div class="card"><h3>HTTP 狀態碼</h3><canvas id="chart-status-2"></canvas></div>
+        <div class="card"><h3>爬取深度</h3><canvas id="chart-depth"></canvas></div>
+      </div>
+    </div>
+
+    <div id="onpage" class="panel">
+      <p class="section-label">On-Page SEO 分佈</p>
+      <div class="chart-grid">
+        <div class="card"><h3>Title 字元長度</h3><canvas id="chart-title"></canvas></div>
+        <div class="card"><h3>Meta Description 長度</h3><canvas id="chart-meta"></canvas></div>
+        <div class="card"><h3>H1 數量</h3><canvas id="chart-h1"></canvas></div>
+        <div class="card"><h3>內部連入 Inlinks</h3><canvas id="chart-inlinks"></canvas></div>
+        <div class="card"><h3>內鏈版位 Link Position</h3><canvas id="chart-link-pos"></canvas></div>
+        <div class="card"><h3>頁面字數</h3><canvas id="chart-words"></canvas></div>
+      </div>
+    </div>
+
+    <div id="issues" class="panel">
+      <p class="section-label">完整問題清單</p>
+      <div class="toolbar">
+        <input type="search" id="issue-search" placeholder="搜尋問題名稱…" aria-label="搜尋問題">
+        <select id="issue-filter" aria-label="優先級篩選">
+          <option value="">全部優先級</option>
+          <option value="high">高</option>
+          <option value="medium">中</option>
+          <option value="low">低</option>
+        </select>
+      </div>
+      <div class="card">{{ISSUE_TABLE}}</div>
+      <p class="section-label" style="margin-top:1.25rem">範例 URL</p>
+      {{ISSUE_SAMPLES}}
+    </div>
+  </div>
+
+  <footer>
+    SiteSpider · 爬取 {{DURATION}}s ·
+    <a href="crawl-report.json" style="color:var(--muted)">crawl-report.json</a> ·
+    <a href="internal.csv" style="color:var(--muted)">internal.csv</a>
+  </footer>
+
+  <script>
+    const DATA = {{DATA_JSON}};
+    const C = {
+      pie: ['#6ec9a0','#4aab82','#8eddb6','#8baee8','#e8c468','#e88a8a','#8b95a8','#f4f2ec'],
+      good: '#6ec9a0', warn: '#e8c468', bad: '#e88a8a', bar: '#6ec9a0', info: '#8baee8',
+      grid: '#27272a', text: '#71717a',
+    };
+    const charts = {};
+
+    function mk(id, cfg) {
+      const el = document.getElementById(id);
+      if (!el || typeof Chart === 'undefined') return;
+      if (charts[id]) charts[id].destroy();
+      charts[id] = new Chart(el, cfg);
+    }
+
+    function doughnut(id, labels, values) {
+      mk(id, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: C.pie, borderWidth: 0 }] },
+        options: {
+          cutout: '62%',
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 11 } } } }
+        }
+      });
+    }
+
+    function barH(id, labels, values, color) {
+      mk(id, {
+        type: 'bar',
+        data: { labels, datasets: [{ data: values, backgroundColor: color || C.bar, borderRadius: 4 }] },
+        options: {
+          indexAxis: 'y',
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true, grid: { color: C.grid } }, y: { grid: { display: false } } }
+        }
+      });
+    }
+
+    function barV(id, labels, values, colors) {
+      mk(id, {
+        type: 'bar',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors || C.bar, borderRadius: 4 }] },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, grid: { color: C.grid } }, x: { grid: { display: false } } }
+        }
+      });
+    }
+
+    function radar(id, labels, values) {
+      mk(id, {
+        type: 'radar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Lighthouse 均分',
+            data: values,
+            backgroundColor: 'rgba(74,222,128,.12)',
+            borderColor: C.good,
+            pointBackgroundColor: C.good,
+          }]
+        },
+        options: {
+          scales: { r: { min: 0, max: 100, ticks: { stepSize: 20 } } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    function objEntries(obj) {
+      const keys = Object.keys(obj || {});
+      return [keys, keys.map(k => obj[k])];
+    }
+
+    function idealColors(labels, idealKeyword) {
+      return labels.map(l => l.includes(idealKeyword) ? C.good
+        : (l.includes('缺少') || l === '0' || l.startsWith('0（') ? C.bad : C.warn));
+    }
+
+    function statusColors(labels) {
+      return labels.map(c => c === '200' ? C.good : (String(c).startsWith('4') ? C.bad : C.warn));
+    }
+
+    function initCharts() {
+      Chart.defaults.color = C.text;
+      Chart.defaults.borderColor = C.grid;
+      Chart.defaults.font.family = '"Noto Sans TC", "Outfit", system-ui, sans-serif';
+
+      const [iL, iV] = objEntries(DATA.indexability);
+      doughnut('chart-indexability', iL, iV);
+      doughnut('chart-indexability-2', iL, iV);
+
+      const [sL, sV] = objEntries(DATA.status_codes);
+      const sc = statusColors(sL);
+      barV('chart-status', sL, sV, sc);
+      barV('chart-status-2', sL, sV, sc);
+
+      barH('chart-idx-status', ...objEntries(DATA.indexability_status), C.warn);
+      barH('chart-issues', ...objEntries(DATA.issues_chart), C.warn);
+
+      const [dL, dV] = objEntries(DATA.crawl_depth);
+      barV('chart-depth', dL, dV);
+
+      const [tL, tV] = objEntries(DATA.title_length);
+      barV('chart-title', tL, tV, idealColors(tL, '理想'));
+
+      const [mL, mV] = objEntries(DATA.meta_length);
+      barV('chart-meta', mL, mV, idealColors(mL, '理想'));
+
+      const [hL, hV] = objEntries(DATA.h1_count);
+      barV('chart-h1', hL, hV, idealColors(hL, '理想'));
+
+      const [nL, nV] = objEntries(DATA.inlinks);
+      barV('chart-inlinks', nL, nV, nL.map(l => l.includes('孤立') ? C.bad : C.bar));
+
+      const [gL, gV] = objEntries((DATA.geo && DATA.geo.score_buckets) ? DATA.geo.score_buckets : {});
+      if (gL.length) barV('chart-geo', gL, gV);
+
+      const [pL, pV] = objEntries(DATA.link_positions || {});
+      if (pL.length) barV('chart-link-pos', pL, pV);
+
+      const [wL, wV] = objEntries(DATA.word_count);
+      barV('chart-words', wL, wV);
+
+      if (DATA.lighthouse) {
+        const lh = DATA.lighthouse;
+        radar('chart-lighthouse', lh.labels, [lh.perf, lh.a11y, lh.bp, lh.seo]);
+      }
+    }
+
+    function resizeVisibleCharts() {
+      Object.values(charts).forEach(c => { try { c.resize(); } catch (_) {} });
+    }
+
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.panel).classList.add('active');
+        setTimeout(resizeVisibleCharts, 80);
+      });
+    });
+
+    const searchEl = document.getElementById('issue-search');
+    const filterEl = document.getElementById('issue-filter');
+    function filterIssues() {
+      const q = (searchEl?.value || '').toLowerCase();
+      const pri = filterEl?.value || '';
+      document.querySelectorAll('#issue-table tbody tr').forEach(tr => {
+        const matchQ = !q || (tr.dataset.label || '').includes(q);
+        const matchP = !pri || tr.dataset.pri === pri;
+        tr.classList.toggle('hidden', !(matchQ && matchP));
+      });
+    }
+    searchEl?.addEventListener('input', filterIssues);
+    filterEl?.addEventListener('change', filterIssues);
+
+    function boot() {
+      if (typeof Chart !== 'undefined') {
+        initCharts();
+      } else {
+        const note = document.createElement('p');
+        note.className = 'chart-offline';
+        note.style.cssText = 'padding:0 1.5rem;color:#fbbf24';
+        note.textContent = 'Chart.js 未載入（離線？）— 以下為簡化條列圖。';
+        document.querySelector('#overview .chart-grid')?.prepend(note);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
+  </script>
+</body>
+</html>

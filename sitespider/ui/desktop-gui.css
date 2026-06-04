@@ -1,0 +1,430 @@
+/* SiteSpider 桌面版 GUI — 三欄駕駛艙（≥1100px 或 html.ss-desktop）
+   左：導覽 + 垂直三步｜中：主工作區｜右：情境／任務欄 */
+
+:root {
+  --ss-sidebar-w: 248px;
+  --ss-rail-w: 360px;
+  --ss-toolbar-h: 3.25rem;
+  --ss-statusbar-h: 2.35rem;
+}
+
+/* ── 僅桌面模式啟用框架 ── */
+html.ss-desktop body.app-dashboard {
+  overflow: hidden;
+  height: 100vh;
+  height: 100dvh;
+}
+
+html.ss-desktop .ss-frame {
+  display: grid;
+  grid-template-columns: var(--ss-sidebar-w) minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+}
+
+html.ss-desktop .ss-workspace {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) var(--ss-statusbar-h);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ── 左側欄 ── */
+html.ss-desktop .ss-desktop-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem 0.85rem 1rem;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  min-height: 0;
+  overflow: hidden;
+}
+
+html:not(.ss-desktop) .ss-desktop-sidebar {
+  display: none;
+}
+
+.ss-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.4rem 0.85rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+  cursor: pointer;
+}
+
+.ss-sidebar-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+}
+
+.ss-sidebar-sub {
+  margin: 0.1rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
+}
+
+.ss-sidebar-section-label {
+  margin: 0.75rem 0 0.35rem;
+  padding: 0 0.45rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.ss-sidebar-nav,
+.ss-sidebar-more {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ss-sidebar-nav a,
+.ss-sidebar-more a {
+  display: block;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+
+.ss-sidebar-nav a:hover,
+.ss-sidebar-more a:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.ss-sidebar-nav a.is-active {
+  background: var(--color-accent-muted);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.ss-sidebar-spacer {
+  flex: 1 1 auto;
+  min-height: 0.5rem;
+}
+
+a.ss-sidebar-guide {
+  display: block;
+  margin-top: 0.35rem;
+  padding: 0.55rem 0.65rem;
+  text-align: center;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent-muted);
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+a.ss-sidebar-guide:hover {
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+}
+
+/* 垂直工作流程（由 desktop-shell 移入） */
+html.ss-desktop .ss-sidebar-workflow {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+html.ss-desktop .ss-sidebar-workflow .step-rail.pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+html.ss-desktop .ss-sidebar-workflow .pipeline-step {
+  width: 100%;
+  min-width: 0;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-md);
+}
+
+html.ss-desktop .ss-sidebar-workflow .pipeline-step.active {
+  background: var(--color-accent-muted);
+  border-color: var(--color-accent);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+html.ss-desktop .console-context .step-rail {
+  display: none;
+}
+
+/* ── 頂欄精簡（導覽在左欄） ── */
+html.ss-desktop .app-dashboard .topbar {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+html.ss-desktop .app-dashboard .topnav a[data-ss-link],
+html.ss-desktop .app-dashboard .topnav .nav-more,
+html.ss-desktop .app-dashboard .topnav .nav-back {
+  display: none !important;
+}
+
+html.ss-desktop .app-dashboard .topbar .brand-sub {
+  display: none;
+}
+
+html.ss-desktop .app-dashboard .topbar .brand-title::after {
+  content: ' · 爬取中心';
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-size: 0.92em;
+}
+
+/* ── 情境列 → 工具列 ── */
+html.ss-desktop .app-dashboard .console-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  max-width: none;
+  margin: 0;
+  padding: 0.65rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+}
+
+html.ss-desktop .app-dashboard .context-copy {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+html.ss-desktop .app-dashboard .context-title {
+  font-size: var(--text-lg);
+}
+
+html.ss-desktop .app-dashboard .context-sub {
+  font-size: var(--text-sm);
+}
+
+html.ss-desktop .app-dashboard .context-actions {
+  flex: 0 0 auto;
+}
+
+/* ── 主體：可捲動中央 + 固定右欄 ── */
+html.ss-desktop .app-dashboard .layout-console-v3 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6px var(--ss-rail-w, 360px);
+  gap: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  overflow: hidden;
+  align-items: stretch;
+}
+
+/* 右欄寬度拖曳 */
+.ss-rail-resizer {
+  display: none;
+  width: 6px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: col-resize;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+html.ss-desktop .app-dashboard .ss-rail-resizer {
+  display: block;
+}
+
+.ss-rail-resizer::after {
+  content: '';
+  position: absolute;
+  top: 12%;
+  bottom: 12%;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: var(--color-border);
+  transition: background 0.15s ease, width 0.15s ease;
+}
+
+.ss-rail-resizer:hover::after,
+.ss-rail-resizer:focus-visible::after,
+body.ss-rail-dragging .ss-rail-resizer::after {
+  background: var(--color-accent);
+  width: 3px;
+  margin-left: -1.5px;
+}
+
+body.ss-rail-dragging {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.ss-rail-dragging iframe {
+  pointer-events: none;
+}
+
+html.ss-desktop .app-dashboard .layout-console-v3 .main-col {
+  max-width: none;
+  padding: 1.25rem 1.5rem 1.5rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+html.ss-desktop .app-dashboard .layout-console-v3[data-console-step='1'] .main-col {
+  max-width: none;
+}
+
+html.ss-desktop .app-dashboard .layout-console-v3 .sidebar-rail {
+  border-left: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  padding: 1rem 1rem 1.25rem;
+  overflow-y: auto;
+  min-height: 0;
+  max-height: none;
+  position: sticky;
+  top: 0;
+  align-self: stretch;
+}
+
+html.ss-desktop .app-dashboard .layout-console-v3[data-console-step='3'] {
+  grid-template-columns: minmax(0, 1fr) 6px var(--ss-rail-w, 360px);
+}
+
+/* 步驟 1：寬螢幕雙欄表單 */
+@media (min-width: 1280px) {
+  html.ss-desktop .app-dashboard .layout-console-v3[data-console-step='1'] .setup-hero .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 1.25rem;
+  }
+}
+
+/* 步驟 3：交付雙欄拉寬 */
+html.ss-desktop .app-dashboard .delivery-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+/* 步驟 2：進度區置中但用滿寬 */
+html.ss-desktop .app-dashboard .layout-console-v3[data-console-step='2'] .main-col {
+  max-width: 56rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 提示橫幅在桌面較緊湊 */
+html.ss-desktop .app-dashboard .guide-promo-bar {
+  margin-bottom: 1rem;
+}
+
+/* ── 底部狀態列 ── */
+html.ss-desktop .ss-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 1.25rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  min-height: var(--ss-statusbar-h);
+}
+
+html:not(.ss-desktop) .ss-statusbar {
+  display: none;
+}
+
+.ss-status-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-secondary);
+}
+
+.ss-status-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  flex-shrink: 0;
+}
+
+.ss-status-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.ss-status-hint kbd {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 0.12rem 0.35rem;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+}
+
+/* 大螢幕（27"）略增側欄與字級舒適度 */
+@media (min-width: 1440px) {
+  :root {
+    --ss-sidebar-w: 264px;
+    --ss-rail-w: 380px;
+  }
+
+  html.ss-desktop .app-dashboard .layout-console-v3 .main-col {
+    padding: 1.35rem 1.75rem 1.75rem;
+  }
+}
+
+@media (min-width: 1920px) {
+  :root {
+    --ss-sidebar-w: 280px;
+    --ss-rail-w: 400px;
+  }
+}
+
+/* 平板以下維持原行動／窄版配置 */
+@media (max-width: 1099px) {
+  .ss-frame {
+    display: block;
+  }
+
+  .ss-workspace {
+    display: block;
+  }
+}

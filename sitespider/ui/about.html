@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>關於我們 — SiteSpider</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="/ui/tokens.css">
+  <link rel="stylesheet" href="/ui/shell.css">
+  <link rel="stylesheet" href="/ui/theme.css">
+  <link rel="stylesheet" href="/ui/comfort-display.css">
+  <link rel="stylesheet" href="/ui/polish.css">
+  <link rel="stylesheet" href="/ui/ux-friendly.css">
+  <link rel="stylesheet" href="/ui/site-reset.css">
+  <link rel="stylesheet" href="/ui/nav-back.css">
+  <link rel="stylesheet" href="/ui/settings-page.css">
+  <link rel="stylesheet" href="/ui/content-page.css">
+</head>
+<body class="app-console">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon" data-brand></div>
+      <div>
+        <p class="brand-title">SiteSpider</p>
+        <p class="brand-sub">SEO · GEO 顧問交付</p>
+      </div>
+    </div>
+    <nav class="topnav" data-ss-nav>
+      <button type="button" class="theme-toggle" title="切換主題">◑</button>
+    </nav>
+  </header>
+
+  <div class="page-wrap content-page settings-page" id="main-content" tabindex="-1">
+    <header class="page-hero">
+      <h1 class="page-title">關於我們</h1>
+      <p class="page-intro">
+        SiteSpider 協助 SEO 顧問、代理商與品牌團隊，將站內爬取、技術稽核與 AI 文案產出，
+        整理成<strong>可直接交付客戶</strong>的 HTML 報告與客戶分享連結——無需客戶安裝桌面爬蟲軟體。
+      </p>
+    </header>
+
+    <div class="content-grid-2">
+      <div class="card content-card">
+        <h3>產品定位</h3>
+        <p>一站完成爬取、問題熱力圖、SEO / GEO brief、多平台 AI 文案（Title/Meta、FAQ、llms.txt），並支援報告品牌與客戶 Portal。</p>
+      </div>
+      <div class="card content-card">
+        <h3>適合對象</h3>
+        <p>獨立顧問、數位代理商、需要固定交付格式的 in-house 團隊。Starter 可免費試跑，Pro 以上含 AI 文案與進階匯出。</p>
+      </div>
+      <div class="card content-card">
+        <h3>與桌面爬蟲的差異</h3>
+        <p>聚焦「顧問交付」：預設閱讀順序、繁中導覽、一頁摘要與分享連結，而非僅輸出原始技術檔案。</p>
+      </div>
+      <div class="card content-card">
+        <h3>資料與隱私</h3>
+        <p>爬取與報告保存在您執行 SiteSpider 的環境（本機或自架）。API 金鑰可仅存於瀏覽器或由伺服器環境變數管理。</p>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <a href="/demo" class="btn-cta secondary">範例報告</a>
+      <a href="/pricing" class="btn-cta secondary">方案價格</a>
+      <a href="/" class="btn-cta primary">開始爬取</a>
+    </div>
+  </div>
+
+  <script src="/ui/app-shell.js"></script>
+  <script src="/ui/nav-back.js"></script>
+  <script src="/ui/topnav.js"></script>
+  <script>SiteSpiderNav.render('about');</script>
+</body>
+</html>

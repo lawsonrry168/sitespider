@@ -1,0 +1,131 @@
+/* 行銷／說明頁共用（about · contact · pricing hero） */
+
+.page-wrap.content-page {
+  max-width: var(--content-readable);
+  padding: 1.75rem 1.5rem 2rem;
+}
+
+.page-hero {
+  margin-bottom: 1.75rem;
+}
+
+.page-hero .page-title {
+  margin-bottom: 0.65rem;
+}
+
+.page-hero .page-intro {
+  max-width: 42rem;
+  margin-bottom: 0;
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+}
+
+.content-grid-2 {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+@media (min-width: 720px) {
+  .content-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.content-card h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.content-card p {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  line-height: var(--line-body);
+}
+
+.content-page .btn-row {
+  margin-top: 1.75rem;
+}
+
+a.btn-cta,
+button.btn-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.15rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: filter var(--transition), transform var(--transition);
+}
+
+a.btn-cta.primary,
+button.btn-cta.primary {
+  background: var(--gradient-accent);
+  color: var(--color-accent-fg);
+  box-shadow: var(--shadow-sm);
+}
+
+a.btn-cta.secondary,
+button.btn-cta.secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+a.btn-cta:hover,
+button.btn-cta:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+a.btn-cta:active,
+button.btn-cta:active {
+  transform: translateY(0) scale(0.98);
+}
+
+a.btn-cta:focus-visible,
+button.btn-cta:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.contact-email {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  word-break: break-all;
+  color: var(--color-accent);
+}
+
+.contact-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.15rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  line-height: var(--line-body);
+}
+
+.contact-list li {
+  margin-bottom: 0.4rem;
+}
+
+.inline-links {
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  line-height: var(--line-body);
+}
+
+.inline-links a {
+  color: var(--color-accent-2);
+}
+
+.inline-links a:hover {
+  color: var(--color-accent);
+}

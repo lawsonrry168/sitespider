@@ -1,0 +1,12 @@
+{
+  "sk_live_demo_pro": {
+    "tenant": "demo",
+    "plan": "pro",
+    "label": "Demo Customer"
+  },
+  "sk_live_agency_internal": {
+    "tenant": "internal",
+    "plan": "agency",
+    "label": "Your Agency"
+  }
+}

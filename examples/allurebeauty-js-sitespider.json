@@ -1,0 +1,23 @@
+{
+  "site_url": "https://www.allurebeauty.com.hk/",
+  "mode": "http",
+  "output": "reports/allurebeauty-js",
+  "crawl": {
+    "max_pages": 120,
+    "max_depth": 6,
+    "workers": 2,
+    "respect_robots": true,
+    "use_sitemap": true,
+    "render_javascript": true,
+    "render_wait_until": "domcontentloaded",
+    "exclude_paths": ["/404"]
+  },
+  "audit": {
+    "thin_content_min_words": 0
+  },
+  "report": {
+    "xlsx": true,
+    "client_report": true
+  },
+  "client_label": "Allure 露亞美容養生館（JS）"
+}

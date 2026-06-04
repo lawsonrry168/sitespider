@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>帳號與方案 — SiteSpider</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="/ui/tokens.css">
+  <link rel="stylesheet" href="/ui/shell.css">
+  <link rel="stylesheet" href="/ui/theme.css">
+  <link rel="stylesheet" href="/ui/comfort-display.css">
+  <link rel="stylesheet" href="/ui/polish.css">
+  <link rel="stylesheet" href="/ui/ux-friendly.css">
+  <link rel="stylesheet" href="/ui/site-reset.css">
+  <link rel="stylesheet" href="/ui/nav-back.css">
+  <link rel="stylesheet" href="/ui/settings-page.css">
+</head>
+<body class="app-console">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon" data-brand></div>
+      <div>
+        <p class="brand-title">SiteSpider</p>
+        <p class="brand-sub">SEO · GEO 顧問交付</p>
+      </div>
+    </div>
+    <nav class="topnav" data-ss-nav>
+      <button type="button" class="theme-toggle" title="切換主題">◑</button>
+    </nav>
+  </header>
+
+  <div class="page-wrap settings-page" id="main-content" tabindex="-1">
+    <header class="page-hero">
+      <h1 class="page-title">帳號與方案</h1>
+      <p class="page-intro">設定帳號識別、訂閱方案與 API 金鑰。爬取次數與 AI 文案額度皆依此計算。</p>
+    </header>
+
+    <div class="card form-narrow">
+      <h2>帳號</h2>
+      <label for="tenant_id">帳號 ID</label>
+      <input type="text" id="tenant_id" placeholder="例：my-agency">
+      <p class="field-hint">同一顧問公司可固定一個 ID；不同客戶的報告會分資料夾存放。</p>
+      <label for="plan_id">訂閱方案</label>
+      <select id="plan_id"></select>
+      <p class="field-hint">本機開發時可選 Pro／Agency 試用完整功能（未開 Stripe 嚴格模式時）。</p>
+      <label for="api_key">API 金鑰</label>
+      <input type="password" id="api_key" placeholder="郵件中的金鑰" autocomplete="off">
+      <p class="status" id="usage-status">載入用量…</p>
+
+      <h2 style="margin-top:1.5rem">通知</h2>
+      <label for="slack_webhook">Slack 通知網址（選填）</label>
+      <input type="text" id="slack_webhook" placeholder="https://hooks.slack.com/…">
+
+      <div class="settings-actions">
+        <button type="button" id="btn-save">儲存設定</button>
+        <button type="button" class="secondary" id="btn-portal">管理訂閱與帳單</button>
+        <button type="button" class="secondary hidden" id="btn-buy-ai-bonus">加購 AI 文案</button>
+        <button type="button" class="secondary hidden" id="btn-reset-usage">重設本月用量</button>
+        <button type="button" class="secondary" id="btn-demo">範例報告</button>
+      </div>
+      <p class="status" id="save-status"></p>
+    </div>
+  </div>
+
+  <script src="/ui/app-shell.js"></script>
+  <script src="/ui/console-store.js"></script>
+  <script src="/ui/nav-back.js"></script>
+  <script src="/ui/topnav.js"></script>
+  <script>
+    SiteSpiderNav.render('workspace');
+    function toast(msg, type) {
+      if (window.SiteSpiderShell && SiteSpiderShell.toast) SiteSpiderShell.toast(msg, type || 'info');
+      else alert(msg);
+    }
+    window.__plansById = {};
+
+    function authHeaders(extra) {
+      var h = extra || {};
+      var key = document.getElementById('api_key').value.trim();
+      if (key) h['Authorization'] = 'Bearer ' + key;
+      return h;
+    }
+
+    function fillWorkspace() {
+      var w = ConsoleStore.loadWorkspace();
+      document.getElementById('tenant_id').value = w.tenant_id;
+      document.getElementById('plan_id').value = w.plan_id;
+      document.getElementById('api_key').value = w.api_key;
+      document.getElementById('slack_webhook').value = w.slack_webhook;
+    }
+
+    function saveWorkspace() {
+      ConsoleStore.savePartial({
+        tenant_id: document.getElementById('tenant_id').value.trim() || 'default',
+        plan_id: document.getElementById('plan_id').value,
+        api_key: document.getElementById('api_key').value.trim(),
+        slack_webhook: document.getElementById('slack_webhook').value.trim(),
+      });
+      document.getElementById('save-status').textContent = '已儲存 · 返回爬取中心即可使用';
+      refreshUsage();
+    }
+
+    async function loadPlans() {
+      var res = await fetch('/api/plans');
+      var data = await res.json();
+      var sel = document.getElementById('plan_id');
+      sel.innerHTML = '';
+      (data.plans || []).forEach(function (p) {
+        window.__plansById[p.id] = p;
+        var o = document.createElement('option');
+        o.value = p.id;
+        o.textContent = p.name;
+        sel.appendChild(o);
+      });
+      fillWorkspace();
+      refreshUsage();
+      updateAiBonusBtn();
+    }
+
+    async function refreshUsage() {
+      var tid = document.getElementById('tenant_id').value.trim() || 'default';
+      try {
+        var res = await fetch('/api/usage?tenant_id=' + encodeURIComponent(tid), { headers: authHeaders() });
+        var d = await res.json();
+        if (d.error) {
+          document.getElementById('usage-status').textContent = d.error;
+          return;
+        }
+        var lim = d.limits || {};
+        var aiPart = '';
+        var aiCap = lim.ai_polish_limit_effective || lim.max_ai_polish_per_month || 0;
+        if (aiCap > 0) aiPart = ' · AI ' + (d.usage.ai_polishes || 0) + '/' + aiCap;
+        document.getElementById('usage-status').textContent =
+          '本月方案 ' + d.plan_id + ' · 爬取 ' + (d.usage.crawls || 0) + '/' + lim.max_crawls_per_month + ' 次' + aiPart;
+        if (d.plan_id && document.getElementById('plan_id').querySelector('option[value="' + d.plan_id + '"]')) {
+          document.getElementById('plan_id').value = d.plan_id;
+        }
+      } catch (e) {
+        document.getElementById('usage-status').textContent = '無法載入用量';
+      }
+    }
+
+    function updateAiBonusBtn() {
+      var plan = window.__plansById[document.getElementById('plan_id').value];
+      var ok = !!window.__stripeAiBonus && plan && plan.allows_ai_bonus_purchase;
+      document.getElementById('btn-buy-ai-bonus').classList.toggle('hidden', !ok);
+    }
+
+    document.getElementById('btn-save').onclick = saveWorkspace;
+    document.getElementById('tenant_id').addEventListener('change', refreshUsage);
+    document.getElementById('plan_id').addEventListener('change', function () {
+      updateAiBonusBtn();
+      refreshUsage();
+    });
+    document.getElementById('btn-demo').onclick = function () { window.location.href = '/demo'; };
+    document.getElementById('btn-portal').onclick = async function () {
+      saveWorkspace();
+      var res = await fetch('/api/billing/portal', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ tenant_id: document.getElementById('tenant_id').value.trim() || 'default' }),
+      });
+      var d = await res.json();
+      if (d.url) window.location.href = d.url;
+      else toast(d.error || '無法開啟訂閱管理頁', 'error');
+    };
+    document.getElementById('btn-buy-ai-bonus').onclick = async function () {
+      saveWorkspace();
+      var res = await fetch('/api/billing/ai-bonus-checkout', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          tenant_id: document.getElementById('tenant_id').value.trim(),
+          plan_id: document.getElementById('plan_id').value,
+        }),
+      });
+      var d = await res.json();
+      if (d.url) window.location.href = d.url;
+      else toast(d.error || '無法建立加購', 'error');
+    };
+
+    document.getElementById('btn-reset-usage').onclick = async function () {
+      saveWorkspace();
+      var tid = document.getElementById('tenant_id').value.trim() || 'default';
+      if (!confirm('確定重設帳號「' + tid + '」本月爬取／AI 用量？')) return;
+      var res = await fetch('/api/usage/reset', {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ tenant_id: tid }),
+      });
+      var d = await res.json();
+      if (d.ok) {
+        toast('已重設本月用量', 'success');
+        refreshUsage();
+      } else {
+        toast(d.error || '無法重設', 'error');
+      }
+    };
+
+    fetch('/api/info').then(function (r) { return r.json(); }).then(function (info) {
+      window.__stripeAiBonus = !!info.stripe_ai_bonus_configured;
+      updateAiBonusBtn();
+      if (info.dev_skip_quota) document.getElementById('btn-reset-usage').classList.remove('hidden');
+      if (info.strict_plan) {
+        var sel = document.getElementById('plan_id');
+        if (sel) {
+          sel.disabled = true;
+          sel.title = '方案由訂閱決定';
+        }
+      }
+    }).catch(function () {});
+    loadPlans();
+    fillWorkspace();
+    window.addEventListener('pageshow', function () {
+      fillWorkspace();
+      refreshUsage();
+    });
+  </script>
+</body>
+</html>

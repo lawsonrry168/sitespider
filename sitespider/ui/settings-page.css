@@ -1,0 +1,39 @@
+/* 設定獨立頁共用版面 */
+.settings-page { max-width: 720px; }
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .settings-grid { grid-template-columns: 1fr; }
+}
+.settings-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.color-row { display: flex; gap: 0.5rem; align-items: center; }
+.color-row input[type="color"] {
+  width: 2.75rem; height: 2.75rem; padding: 0;
+  border: 1px solid var(--color-border); border-radius: 8px; cursor: pointer;
+}
+.brand-preview-wrap {
+  border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  overflow: hidden; background: var(--color-surface);
+}
+.brand-preview-topbar {
+  padding: 0.65rem 1rem; border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-mono); font-size: var(--text-sm); color: var(--color-text-muted);
+}
+.brand-preview-body { padding: 1.25rem; }
+.brand-preview-header {
+  display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;
+  padding-bottom: 1rem; border-bottom: 2px solid var(--preview-accent, var(--color-accent));
+}
+.brand-preview-logo { max-height: 52px; max-width: 140px; object-fit: contain; }
+.brand-preview-placeholder {
+  width: 52px; height: 52px; border-radius: 10px; border: 1px dashed var(--color-border);
+  display: grid; place-items: center; font-size: var(--text-xs); color: var(--color-text-muted);
+}
+.brand-preview-sub { margin: 0.25rem 0 0; font-size: var(--text-sm); color: var(--color-text-muted); }
+.brand-preview-mock { height: 8px; border-radius: 4px; background: var(--color-border); margin-bottom: 0.5rem; }
+.brand-preview-mock.short { width: 55%; }
+.brand-preview-mock.accent { width: 35%; background: var(--preview-accent, var(--color-accent)); opacity: 0.55; }

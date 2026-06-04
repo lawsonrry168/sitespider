@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>內鏈圖 WebGL — {{SITE_URL}}</title>
+  <style>
+{{REPORT_PAGES_CSS}}
+{{LINK_GRAPH_CSS}}
+  </style>
+</head>
+<body class="graph-webgl">
+  {{REPORT_NAV}}
+  <p class="graph-meta" style="position:fixed;top:3.25rem;left:1.25rem;z-index:5;margin:0">
+    {{NODE_COUNT}} 節點 · {{EDGE_COUNT}} 邊 ·
+    <a href="link_graph.html">D3 版</a>
+  </p>
+  <div id="canvas-wrap"></div>
+  <p id="graph-hint">拖曳旋轉 · 滾輪縮放 · 點擊節點開啟 URL</p>
+  <script type="importmap">
+  {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","3d-force-graph":"https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.3/+esm"}}
+  </script>
+  <script type="module">
+  import ForceGraph3D from '3d-force-graph';
+  const DATA = {{DATA_JSON}};
+  const el = document.getElementById('canvas-wrap');
+  const gData = {
+    nodes: DATA.nodes.map(n => ({ id: n.id, name: n.label, val: 2 + (n.score || 0) * 30, url: n.id, score: n.score || 0 })),
+    links: DATA.edges.map(e => ({ source: e.source, target: e.target }))
+  };
+  function nodeColor(n) {
+    const t = 0.25 + Math.min(0.75, (n.score || 0) * 2);
+    const r = Math.round(39 + (74 - 39) * t);
+    const g = Math.round(39 + (222 - 39) * t);
+    const b = Math.round(42 + (128 - 42) * t);
+    return `rgb(${r},${g},${b})`;
+  }
+  const Graph = ForceGraph3D(el)
+    .backgroundColor('#09090b')
+    .graphData(gData)
+    .nodeLabel(n => n.url)
+    .nodeColor(nodeColor)
+    .linkColor(() => 'rgba(74, 222, 128, 0.18)')
+    .onNodeClick(n => { if (n.url) window.open(n.url, '_blank'); });
+  Graph.cameraPosition({ z: 400 });
+  </script>
+</body>
+</html>

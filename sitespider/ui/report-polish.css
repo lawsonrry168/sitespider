@@ -1,0 +1,384 @@
+/* SiteSpider 交付報告潤飾 — REPORT-zh 生態系（離線可嵌入） */
+
+/* ── Accessibility ── */
+.skip-link,
+.report-skip {
+  position: absolute;
+  left: 0.75rem;
+  top: -3rem;
+  z-index: 1000;
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--bg);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.18s ease;
+}
+
+.skip-link:focus,
+.report-skip:focus {
+  top: 0.75rem;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+#main-content:focus {
+  outline: none;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Topbar & nav ── */
+.report-topbar {
+  box-shadow: 0 1px 0 rgba(110, 201, 160, 0.08);
+}
+
+.report-nav a {
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.report-nav a:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.report-nav a.nav-active {
+  box-shadow: 0 0 0 1px rgba(110, 201, 160, 0.2);
+}
+
+.ss-back:active {
+  transform: scale(0.98);
+}
+
+/* ── Page titles ── */
+.report-main > h1,
+.md-body h1 {
+  text-wrap: balance;
+}
+
+.report-main > .lead,
+.md-body p {
+  text-wrap: pretty;
+}
+
+.report-main > h1::after,
+.md-body h1::after {
+  content: "";
+  display: block;
+  width: 2.5rem;
+  height: 3px;
+  margin-top: 0.55rem;
+  background: linear-gradient(135deg, #6ec9a0 0%, #4aab82 100%);
+  border-radius: 2px;
+}
+
+/* ── Hero (REPORT-zh) ── */
+.readme-hero {
+  padding: 1.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--card) 0%, var(--bg2) 100%);
+  box-shadow: 0 2px 12px rgba(8, 12, 28, 0.35);
+}
+
+.health-ring-lg {
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 4px var(--accent-dim);
+}
+
+.stat-chip {
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.stat-chip:hover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.score-hero {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Delivery tiles ── */
+.delivery-grid {
+  align-items: stretch;
+}
+
+.delivery-tile {
+  position: relative;
+  min-height: 100%;
+  transform: translateY(0);
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.delivery-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 18px rgba(8, 12, 28, 0.4);
+}
+
+.delivery-tile:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.delivery-tile em {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Cards & sections ── */
+.report-main .card {
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.report-main .card:hover {
+  border-color: #3d4a63;
+  box-shadow: 0 2px 14px rgba(8, 12, 28, 0.32);
+}
+
+.report-main .card h2,
+.report-main .card h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.report-main .card h2 {
+  margin-top: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: var(--text-lg);
+  color: var(--text);
+}
+
+.report-main .card ul {
+  line-height: 1.65;
+}
+
+.report-main .card pre {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.report-main .card code,
+.md-body code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--bg2);
+  padding: 0.12em 0.38em;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+/* ── Data tables ── */
+table.data tbody tr {
+  transition: background 0.15s ease;
+}
+
+table.data tbody tr:hover td {
+  background: rgba(110, 201, 160, 0.06);
+}
+
+table.data td code {
+  word-break: break-all;
+}
+
+/* ── Markdown delivery pages ── */
+.md-page {
+  max-width: var(--content-readable, 52rem);
+  margin: 0 auto;
+  padding: 1.75rem 1.5rem 3rem;
+}
+
+.md-body h1 {
+  font-family: var(--font-display);
+  margin-top: 0;
+  letter-spacing: -0.03em;
+}
+
+.md-body h2 {
+  margin-top: 2rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.md-body h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  margin-top: 1.5rem;
+  color: var(--text);
+}
+
+.md-body a {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.md-body a:hover {
+  color: #8eddb6;
+}
+
+.md-body hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5rem 0;
+}
+
+.md-body ul,
+.md-body ol {
+  padding-left: 1.35rem;
+  line-height: 1.7;
+}
+
+.md-body li {
+  margin-bottom: 0.35rem;
+}
+
+.md-body p {
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.md-body strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ── SEO Brief cards ── */
+.brief-card {
+  margin-bottom: 1rem;
+}
+
+.brief-card h2 {
+  margin-top: 0;
+  font-size: var(--text-md);
+  word-break: break-all;
+  line-height: var(--line-snug);
+}
+
+.brief-card h2 a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.brief-card h2 a:hover {
+  text-decoration: underline;
+}
+
+.brief-meta {
+  font-variant-numeric: tabular-nums;
+}
+
+.brief-dl {
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  gap: 0.35rem 0.75rem;
+  font-size: 0.88rem;
+  margin: 1rem 0 0;
+}
+
+.brief-dl dt {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.brief-dl dd {
+  margin: 0;
+}
+
+.brief-advice {
+  color: var(--muted);
+}
+
+/* ── AI hub / link lists ── */
+.report-main .card ul.link-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.report-main .card ul.link-list li {
+  margin-bottom: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.report-main .card ul.link-list li:hover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.report-main .card ul.link-list a {
+  font-weight: 600;
+}
+
+.report-main .card ul.link-list code {
+  margin-left: 0.35rem;
+}
+
+/* ── Heatmap legend hint ── */
+.heatmap-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 0.75rem;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.heatmap-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.heatmap-swatch {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+/* ── Report footer note ── */
+.report-footnote {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Empty / placeholder pages ── */
+.report-empty {
+  padding: 1.25rem;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  background: var(--bg2);
+}

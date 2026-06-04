@@ -1,0 +1,11 @@
+[
+  {
+    "name": "Product SKU",
+    "css": "[data-product-sku], .sku",
+    "extract": "text"
+  },
+  {
+    "name": "Phone",
+    "regex": "tel:([+\\d\\s-]+)"
+  }
+]

@@ -2,221 +2,2368 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SiteSpider 控制台</title>
+  <title>SiteSpider 爬取中心</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="/ui/tokens.css">
+  <link rel="stylesheet" href="/ui/shell.css">
+  <link rel="stylesheet" href="/ui/theme.css">
+  <link rel="stylesheet" href="/ui/comfort-display.css">
+  <link rel="stylesheet" href="/ui/polish.css">
+  <link rel="stylesheet" href="/ui/ux-friendly.css">
+  <link rel="stylesheet" href="/ui/site-reset.css">
+  <link rel="stylesheet" href="/ui/console-layout.css">
+  <link rel="stylesheet" href="/ui/desktop-gui.css">
+  <link rel="stylesheet" href="/ui/nav-back.css">
   <style>
-    :root {
-      font-family: "Noto Sans TC", system-ui, sans-serif;
-      --bg: #0c1017;
-      --card: #151d2b;
-      --border: #2a3548;
-      --text: #e8edf5;
-      --muted: #8b9cb3;
-      --accent: #3dd6a0;
-      --warn: #f0b429;
-      --danger: #f07178;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--text); min-height: 100vh; }
-    .wrap { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
-    h1 { font-size: 1.4rem; margin: 0 0 0.25rem; }
-    .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
-    .card h2 { font-size: 0.95rem; margin: 0 0 1rem; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
-    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.35rem; }
-    input[type="text"], input[type="number"], select {
-      width: 100%; padding: 0.55rem 0.75rem; border-radius: 8px;
-      border: 1px solid var(--border); background: var(--bg); color: var(--text);
-      font-size: 0.95rem; margin-bottom: 0.75rem;
-    }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
-    .slider-row { margin-bottom: 1rem; }
-    .slider-row input[type="range"] { width: 100%; accent-color: var(--accent); }
-    .slider-val { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
-    .checks { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
-    .checks label { display: flex; align-items: center; gap: 0.4rem; margin: 0; color: var(--text); cursor: pointer; }
-    .checks input { width: auto; margin: 0; }
-    button {
-      background: var(--accent); color: #0a1210; border: none; border-radius: 8px;
-      padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 600; cursor: pointer;
-    }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); margin-left: 0.5rem; }
-    .progress { height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; margin: 1rem 0 0.5rem; }
-    .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s; }
-    .status { font-size: 0.85rem; color: var(--muted); }
-    .log { font-family: ui-monospace, monospace; font-size: 0.8rem; max-height: 200px; overflow-y: auto; background: var(--bg); padding: 0.75rem; border-radius: 8px; margin-top: 1rem; }
-    .issues { list-style: none; padding: 0; margin: 0; }
-    .issues li { padding: 0.35rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-    .badge { display: inline-block; padding: 0.1rem 0.45rem; border-radius: 4px; background: #3d3419; color: var(--warn); font-size: 0.75rem; margin-left: 0.5rem; }
-    a { color: var(--accent); }
-    .hidden { display: none; }
-    .warn-box { background: #2a2418; border: 1px solid var(--warn); color: var(--warn); padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .config-status { font-size: 0.82rem; color: var(--color-accent); min-height: 1.2em; font-family: var(--font-mono); }
+    .gsc-off { color: var(--color-text-muted); font-size: 0.82rem; margin-top: 0.25rem; }
   </style>
 </head>
-<body>
-  <div class="wrap">
-    <h1>SiteSpider 控制台</h1>
-    <p class="sub">專業 SEO 站內爬蟲 · robots · sitemap · 並行 · Lighthouse</p>
-
-    <div id="lh-warn" class="warn-box hidden">
-      Lighthouse 需要 Node.js 與 <code>npm install -g lighthouse</code>，且僅支援 HTTP 模式。
+<body class="app-console app-dashboard">
+  <div class="ss-frame" id="ss-frame">
+    <aside class="ss-desktop-sidebar" id="ss-desktop-sidebar" aria-label="應用程式導覽">
+      <div class="ss-sidebar-brand">
+        <div class="brand-icon" data-brand title="返回爬取中心"></div>
+        <div>
+          <p class="ss-sidebar-title">SiteSpider</p>
+          <p class="ss-sidebar-sub">SEO · GEO 交付</p>
+        </div>
+      </div>
+      <nav class="ss-sidebar-nav" id="ss-sidebar-nav" aria-label="主選單"></nav>
+      <p class="ss-sidebar-section-label">工作流程</p>
+      <div class="ss-sidebar-workflow" id="ss-sidebar-workflow-slot" aria-label="工作流程"></div>
+      <nav class="ss-sidebar-more" id="ss-sidebar-more" aria-label="更多功能"></nav>
+      <div class="ss-sidebar-spacer" aria-hidden="true"></div>
+      <a href="/guide" class="ss-sidebar-guide">使用說明</a>
+    </aside>
+    <div class="ss-workspace">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon" data-brand id="brand-icon"></div>
+      <div>
+        <p class="brand-title">SiteSpider</p>
+        <p class="brand-sub">SEO · GEO 顧問交付 · <span id="app-version">…</span></p>
+      </div>
     </div>
+    <nav class="topnav" data-ss-nav>
+      <button type="button" class="theme-toggle" title="切換主題">◑</button>
+    </nav>
+  </header>
 
-    <form id="crawl-form" class="card">
-      <h2>爬取設定</h2>
-      <div class="row">
-        <div>
-          <label for="mode">模式</label>
-          <select id="mode" name="mode">
-            <option value="file">檔案（直接讀 HTML）</option>
-            <option value="http">HTTP（本機伺服器）</option>
-          </select>
-        </div>
-        <div>
-          <label for="workers">並行執行緒</label>
-          <input type="number" id="workers" name="workers" min="1" max="16" value="4">
-        </div>
-      </div>
-      <label for="root">網站根目錄</label>
-      <input type="text" id="root" name="root" placeholder="/path/to/site">
-      <label for="url">起始 URL（HTTP 模式）</label>
-      <input type="text" id="url" name="url" value="http://localhost:8080/">
-
-      <div class="slider-row card" style="background:var(--bg);margin:1rem 0;padding:1rem;">
-        <label>最大爬取深度 <span class="slider-val" id="depth-val">10</span></label>
-        <input type="range" id="max_depth" name="max_depth" min="0" max="20" value="10">
-        <p class="status" style="margin:0.5rem 0 0">0 = 僅首頁；數字越大越深入追蹤內鏈</p>
-      </div>
-
-      <div class="row">
-        <div>
-          <label for="max_pages">最大頁數</label>
-          <input type="number" id="max_pages" name="max_pages" min="1" max="5000" value="500">
-        </div>
-        <div>
-          <label for="lighthouse_max">Lighthouse 頁數上限</label>
-          <input type="number" id="lighthouse_max" name="lighthouse_max" min="1" max="50" value="5">
-        </div>
-      </div>
-
-      <div class="checks">
-        <label><input type="checkbox" id="respect_robots" checked> 遵守 robots.txt</label>
-        <label><input type="checkbox" id="use_sitemap" checked> 使用 sitemap.xml 種子</label>
-        <label><input type="checkbox" id="check_external"> 檢查外部連結</label>
-        <label><input type="checkbox" id="lighthouse"> 執行 Lighthouse</label>
-      </div>
-
-      <button type="submit" id="btn-start">開始爬取</button>
-      <button type="button" class="secondary hidden" id="btn-report">開啟 HTML 報告</button>
-    </form>
-
-    <div id="progress-card" class="card hidden">
-      <h2>進度</h2>
-      <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
-      <p class="status" id="progress-text">準備中…</p>
-      <div class="log" id="log"></div>
+  <div class="console-context" id="console-context">
+    <nav class="step-rail pipeline" aria-label="工作流程">
+      <button type="button" class="pipeline-step active" data-step="1">
+        <span class="pipeline-num">1</span>
+        <span><span class="pipeline-label">設定</span><span class="pipeline-sub">網址與範圍</span></span>
+      </button>
+      <button type="button" class="pipeline-step" data-step="2">
+        <span class="pipeline-num">2</span>
+        <span><span class="pipeline-label">爬取</span><span class="pipeline-sub">進度與日誌</span></span>
+      </button>
+      <button type="button" class="pipeline-step" data-step="3">
+        <span class="pipeline-num">3</span>
+        <span><span class="pipeline-label">交付</span><span class="pipeline-sub">報告與下載</span></span>
+      </button>
+    </nav>
+    <div class="context-copy">
+      <p class="context-title" id="context-title">設定這次要爬的網站</p>
+      <p class="context-sub" id="context-sub">填網址與客戶名稱，按「開始爬取」即可</p>
     </div>
-
-    <div id="result-card" class="card hidden">
-      <h2>結果摘要</h2>
-      <div id="result-summary"></div>
-      <ul class="issues" id="issue-list"></ul>
+    <div class="context-actions">
+      <a href="/guide" class="context-guide-link">使用說明</a>
+      <label class="job-switcher-wrap hidden" id="job-switcher-wrap" for="job-switcher">
+        <span class="job-switcher-label">目前任務</span>
+        <select id="job-switcher" class="job-switcher" aria-label="切換最近任務"></select>
+      </label>
+      <button type="button" class="secondary btn-new-crawl-top" id="btn-new-crawl-top" title="清除目前任務，重新設定網址">＋ 新爬取</button>
     </div>
   </div>
 
+  <div class="layout layout-console-v3" id="main-content" data-console-step="1" tabindex="-1">
+    <div class="main-col">
+      <div id="guide-promo" class="callout callout-guide dismissible guide-promo-bar" data-dismiss-key="ss-guide-promo" role="region" aria-label="使用說明提示">
+        <button type="button" class="callout-dismiss" aria-label="關閉使用說明提示">×</button>
+        <p class="callout-title"><strong>第一次使用 SiteSpider？</strong></p>
+        <p class="callout-detail">
+          <a href="/guide" class="guide-promo-cta">打開完整使用說明</a>
+          — 含三步交付流程、報告檔案說明、GSC、AI 文案與方案差異。
+        </p>
+      </div>
+      <div class="step-warnings">
+        <div id="lh-warn" class="callout callout-warn dismissible hidden" data-dismiss-key="ss-warn-lh" role="status">
+          <button type="button" class="callout-dismiss" aria-label="關閉 Lighthouse 提示">×</button>
+          <p class="callout-title"><strong>Lighthouse 速度檢測尚未就緒</strong></p>
+          <p class="callout-detail">此功能會對部分頁面跑 Google Lighthouse，在報告中附上<strong>載入速度、LCP、行動版體驗</strong>等分數。沒有安裝也不影響一般爬取與 SEO 問題檢查。</p>
+          <p class="callout-detail">若要啟用，請在本機（執行 SiteSpider 的那台電腦）安裝：</p>
+          <ol class="callout-steps">
+            <li>安裝 <a href="https://nodejs.org/" target="_blank" rel="noopener noreferrer">Node.js</a>（建議 LTS 版）</li>
+            <li>在終端機執行：<code>npm install -g lighthouse</code></li>
+            <li>重新啟動 <code>bash scripts/dev-ui.sh</code>，再到「進階選項」勾選 Lighthouse</li>
+          </ol>
+        </div>
+        <div id="js-warn" class="callout callout-warn dismissible hidden" data-dismiss-key="ss-warn-js" role="status">
+          <button type="button" class="callout-dismiss" aria-label="關閉 JS 渲染提示">×</button>
+          <p class="callout-title"><strong>JavaScript 渲染尚未就緒</strong></p>
+          <p class="callout-detail">適用於<strong>React、Vue、Nuxt</strong>等由瀏覽器動態產生內容的網站。開啟後會用真實瀏覽器載入頁面，才能抓到 JS 執行後的標題、連結與文字（一般 HTTP 爬蟲可能只看到空白殼）。</p>
+          <p class="callout-detail">沒有安裝時仍可爬一般靜態／伺服器輸出 HTML 的網站；「JS 渲染」選項會維持停用。</p>
+          <p class="callout-detail">若要啟用，在專案目錄執行：</p>
+          <ol class="callout-steps">
+            <li><code>pip install 'sitespider[browser]'</code>（或 <code>pip install -e '.[browser]'</code>）</li>
+            <li><code>playwright install chromium</code></li>
+            <li>重新啟動控制台後，在進階選項勾選「JavaScript 渲染」</li>
+          </ol>
+          <p class="callout-note">首次安裝會下載 Chromium，約需數百 MB 與數分鐘時間。</p>
+        </div>
+      </div>
+
+      <!-- Step 1: Configure -->
+      <div class="step-panel" data-step-panel="1">
+        <form id="crawl-form">
+          <div class="card card-hero setup-hero">
+            <h2>開始這次爬取</h2>
+            <p class="card-lead">填好下面兩項就能開始；其他選項可先略過。</p>
+            <p class="kbd-hint">
+              <span><kbd id="kbd-mod">⌘</kbd>+<kbd>Enter</kbd> 開始爬取</span>
+              <span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> 切換步驟</span>
+              <span><kbd>Esc</kbd> 返回設定</span>
+            </p>
+
+            <label for="url">客戶網站網址</label>
+            <input type="text" class="input-hero" id="url" name="url" value="https://example.com/" placeholder="https://your-client.com/" inputmode="url" autocomplete="url">
+            <p class="field-hint">請填可公開瀏覽的首頁或站點根目錄，例如 <code>https://example.com/</code></p>
+            <p class="config-status" id="url-status" aria-live="polite"></p>
+
+            <div class="row">
+              <div class="field-group">
+                <label for="client_label">客戶 / 專案名稱</label>
+                <input type="text" id="client_label" name="client_label" placeholder="例：123deal 三月稽核">
+                <p class="field-hint">會顯示在交付摘要與任務列表，方便你之後找回這次報告。</p>
+              </div>
+              <div class="field-group">
+                <label for="mode">模式</label>
+                <select id="mode" name="mode">
+                  <option value="file">檔案（本地 HTML）</option>
+                  <option value="http" selected>HTTP（線上網站）</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="metric-row">
+              <div class="metric-tile">
+                <label for="max_pages">最大頁數</label>
+                <input type="number" id="max_pages" name="max_pages" min="1" max="5000" value="500">
+                <div class="pill-row">
+                  <button type="button" class="pill" id="btn-preset-smoke">試跑 12 頁</button>
+                  <button type="button" class="pill" id="btn-preset-full">全站 500</button>
+                </div>
+                <p class="config-status hidden" id="plan-cap-hint" aria-live="polite"></p>
+              </div>
+              <div class="metric-tile slider-row">
+                <label>爬取深度 <span class="slider-val" id="depth-val">10</span></label>
+                <input type="range" id="max_depth" name="max_depth" min="0" max="20" value="10">
+              </div>
+            </div>
+
+            <label for="exclude_paths">不要爬的路徑（選填）</label>
+            <input type="text" id="exclude_paths" name="exclude_paths" placeholder="/cart/, /checkout/, /admin/">
+            <p class="field-hint">用逗號分隔；購物車、後台等路徑可排除以加快爬取。</p>
+
+            <div class="card image-export-card">
+              <h2>圖片稽核與打包</h2>
+              <p class="field-hint">每次爬取都會產生 <strong>images-gallery.html</strong>（圖片稽核頁）。勾選下載後，圖片會存到報告的 <code>images/</code>，並一併打入交付 ZIP。</p>
+              <div class="checks">
+                <label><input type="checkbox" id="download_images"> 下載站內圖片（納入 ZIP 打包）</label>
+              </div>
+              <div class="row image-export-limits">
+                <div>
+                  <label for="max_images_download">最多下載張數</label>
+                  <input type="number" id="max_images_download" min="1" max="2000" value="300">
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-launch" id="btn-start">開始爬取</button>
+          </div>
+
+          <div class="card">
+            <h2>快速匯入設定</h2>
+            <p class="status" style="margin-bottom:0.85rem">載入範例 JSON 或上傳 sitespider.json，自動填入上方欄位。</p>
+            <div class="import-bar">
+              <div>
+                <label for="preset">範例</label>
+                <select id="preset"><option value="">— 選擇 —</option></select>
+              </div>
+              <button type="button" class="ghost" id="btn-load-preset">載入</button>
+              <button type="button" class="ghost" id="btn-clear-config">清除</button>
+            </div>
+            <label for="config_file" style="margin-top:0.85rem">或上傳檔案</label>
+            <input type="file" id="config_file" accept=".json,application/json">
+            <p class="config-status" id="config-status"></p>
+          </div>
+
+          <div class="card" style="padding:0;border:none;background:transparent;box-shadow:none">
+            <details class="advanced">
+              <summary>進階選項（多數情況可略過）</summary>
+              <div class="advanced-body">
+                <div class="row">
+                  <div>
+                    <label for="workers">並行執行緒</label>
+                    <input type="number" id="workers" name="workers" min="1" max="16" value="4">
+                  </div>
+                  <div>
+                    <label for="lighthouse_max">Lighthouse 上限</label>
+                    <input type="number" id="lighthouse_max" name="lighthouse_max" min="0" max="50" value="5">
+                  </div>
+                </div>
+                <label for="root">專案根目錄</label>
+                <input type="text" id="root" name="root" placeholder="/path/to/sitespider">
+                <label for="config_path">設定檔路徑</label>
+                <input type="text" id="config_path" name="config_path" placeholder="examples/123deal-sitespider.json">
+                <div class="row">
+                  <div>
+                    <label for="gsc_inspect_max">Search Console 檢查（0＝關閉）</label>
+                    <input type="number" id="gsc_inspect_max" min="0" max="50" value="0">
+                  </div>
+                  <div>
+                    <label for="gsc_site_url">Search Console 資源網址</label>
+                    <input type="text" id="gsc_site_url" placeholder="https://example.com/">
+                  </div>
+                </div>
+                <p class="gsc-off" id="gsc-hint">未連結 Search Console 時保持 <strong>0</strong>，仍會產生完整站內技術報告。</p>
+                <div class="checks">
+                  <label><input type="checkbox" id="respect_robots" checked> 遵守 robots.txt</label>
+                  <label><input type="checkbox" id="use_sitemap" checked> 使用 sitemap</label>
+                  <label><input type="checkbox" id="check_external"> 檢查外部連結</label>
+                  <label><input type="checkbox" id="lighthouse"> Lighthouse 速度</label>
+                  <label><input type="checkbox" id="require_json_ld"> 檢查 JSON-LD</label>
+                  <label><input type="checkbox" id="xlsx"> 匯出 Excel</label>
+                  <label><input type="checkbox" id="client_report" checked> 繁中交付報告</label>
+                  <label><input type="checkbox" id="render_js"> JavaScript 渲染</label>
+                  <label><input type="checkbox" id="strip_query"> 網址忽略 ? 參數</label>
+                  <label><input type="checkbox" id="defer_link_checks" checked> 先爬頁、後檢連結</label>
+                  <label><input type="checkbox" id="auto_open_report" checked> 完成後開啟交付導覽</label>
+                </div>
+                <p class="status">自訂擷取 → custom.csv</p>
+                <div class="checks" id="custom-presets"></div>
+              </div>
+            </details>
+          </div>
+        </form>
+      </div>
+
+      <!-- Step 2: Run -->
+      <div class="step-panel hidden" data-step-panel="2">
+        <div id="progress-card" class="card run-theater">
+          <h2>正在爬取</h2>
+          <p class="card-lead">完成後會自動進入交付；右側可看即時問題。</p>
+
+          <div class="live-dash" id="live-dash">
+            <div class="live-ring">
+              <svg viewBox="0 0 88 88" aria-hidden="true">
+                <defs>
+                  <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#6ec9a0"/>
+                    <stop offset="100%" stop-color="#4aab82"/>
+                  </linearGradient>
+                </defs>
+                <circle class="ring-bg" cx="44" cy="44" r="40"/>
+                <circle class="ring-fg" id="live-ring-fg" cx="44" cy="44" r="40"/>
+              </svg>
+              <span class="live-ring-pct" id="live-ring-pct">0%</span>
+            </div>
+            <div class="live-stats">
+              <div class="stat-cell">
+                <span class="stat-val" id="live-pages">0</span>
+                <span class="stat-label">已爬頁</span>
+              </div>
+              <div class="stat-cell">
+                <span class="stat-val" id="live-total">—</span>
+                <span class="stat-label">目標</span>
+              </div>
+              <div class="stat-cell">
+                <span class="stat-val" id="live-elapsed">0s</span>
+                <span class="stat-label">耗時</span>
+              </div>
+              <div class="stat-cell">
+                <span class="stat-val status-run" id="live-status">進行中</span>
+                <span class="stat-label">狀態</span>
+              </div>
+            </div>
+          </div>
+
+          <p class="url-preview" id="live-url" title="">等待起始 URL…</p>
+
+          <div class="export-phase hidden" id="export-phase">
+            <span class="phase-chip" data-phase="crawl">① 爬取</span>
+            <span class="phase-chip" data-phase="fast">② 快速匯出</span>
+            <span class="phase-chip" data-phase="standard">③ 完整匯出</span>
+            <span class="phase-chip" data-phase="complete">④ 完成</span>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+            <div class="progress-meta">
+              <span class="status" id="progress-text">準備中…</span>
+              <span class="tag" id="progress-pct">0%</span>
+            </div>
+          </div>
+          <div class="log" id="log"></div>
+        </div>
+      </div>
+
+      <!-- Step 3: Deliver -->
+      <div class="step-panel hidden" data-step-panel="3">
+        <p id="delivery-restore-status" class="status hidden" role="status" aria-live="polite"></p>
+        <div id="result-card" class="card delivery-card">
+          <div class="delivery-layout">
+            <div class="delivery-outcome">
+              <header class="delivery-head">
+                <h2>交付給客戶</h2>
+                <p class="card-lead" id="export-hint">先開「交付導覽」；要離線閱讀可下載 ZIP（含圖片資料夾，若有下載）或單檔 HTML。</p>
+              </header>
+              <div id="form-banner" class="ss-banner hidden" role="alert"></div>
+              <div id="result-summary"></div>
+              <div class="delivery-next-steps" id="delivery-next-steps" hidden>
+                <h3>建議下一步</h3>
+                <ol id="delivery-next-steps-list"></ol>
+              </div>
+              <div class="delivery-primary" id="delivery-primary" aria-label="主要交付入口"></div>
+              <div class="delivery-actions-bar">
+                <button type="button" class="secondary hidden" id="btn-download-zip">⬇ 下載 ZIP</button>
+                <button type="button" class="secondary hidden" id="btn-download-images-zip" title="僅 images/ 與圖片稽核頁">🖼 圖片 ZIP</button>
+                <button type="button" class="secondary hidden" id="btn-open-images-gallery">圖片稽核</button>
+                <button type="button" class="secondary hidden" id="btn-download-client-html" title="單一 HTML，客戶雙擊即可離線閱讀">📄 客戶單檔</button>
+                <button type="button" class="secondary hidden" id="btn-share-portal">🔗 分享連結</button>
+                <button type="button" class="secondary" id="btn-ai-polish" disabled title="需先完成爬取">✨ AI 文案</button>
+              </div>
+              <p class="status hidden" id="ai-polish-status"></p>
+              <div class="ai-progress hidden" id="ai-polish-progress" aria-hidden="true"><div class="ai-progress-bar"></div></div>
+              <div class="delivery-checklist hidden" id="delivery-checklist">
+                <strong>交付清單</strong>
+                <p class="status" id="delivery-checklist-summary"></p>
+                <ul id="delivery-checklist-core"></ul>
+              </div>
+              <h3>主要問題</h3>
+              <ul class="issues" id="issue-list"></ul>
+            </div>
+            <div class="delivery-files-pane">
+              <h3>全部檔案</h3>
+              <p class="status">可搜尋檔名；點擊在新分頁開啟。</p>
+              <input type="search" class="delivery-file-search" id="delivery-file-filter" placeholder="搜尋檔案，例如：AI、dashboard、CSV…" autocomplete="off">
+              <div id="delivery-buttons"></div>
+              <div class="delivery-path-footer hidden" id="report-path-row">
+                <span>本機報告路徑</span>
+                <code class="mono" id="report-path-abs"></code>
+                <button type="button" class="ghost" id="btn-copy-path">複製路徑</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="sidebar sidebar-rail" id="console-rail">
+      <div class="rail-panel" data-rail-panel="setup">
+        <div class="rail-card">
+          <h3>快速開始</h3>
+          <p class="rail-hint">不確定怎麼用？建議先看完整教學，或試跑 12 頁。</p>
+          <a href="/guide" class="rail-guide-cta">打開使用說明</a>
+          <ul class="rail-links" aria-label="快速開始">
+            <li><a href="/demo">看範例報告</a></li>
+            <li><button type="button" id="btn-quick-smoke">試跑 12 頁設定</button></li>
+            <li><a href="/ai">設定 AI 文案</a></li>
+            <li><a href="/branding">報告品牌</a></li>
+          </ul>
+        </div>
+        <div class="rail-card">
+          <h3>最近任務</h3>
+          <p class="rail-hint">點「開啟交付」回到該次報告；上方下拉可快速切換。</p>
+          <div id="job-history"></div>
+          <button type="button" class="ghost full-width btn-clear-history" id="btn-clear-job-history" hidden>清除所有最近任務</button>
+        </div>
+      </div>
+
+      <div class="rail-panel" data-rail-panel="run">
+        <details class="side-section" id="side-live" open>
+          <summary>即時監控 <span class="side-badge idle" id="live-issue-badge">—</span></summary>
+          <div class="side-body">
+            <div class="side-live-grid">
+              <div class="side-live-cell">
+                <span class="val" id="side-live-pages">0</span>
+                <span class="lbl">已爬頁</span>
+              </div>
+              <div class="side-live-cell">
+                <span class="val" id="side-live-issues">0</span>
+                <span class="lbl">問題命中</span>
+              </div>
+              <div class="side-live-cell">
+                <span class="val" id="side-live-types">0</span>
+                <span class="lbl">問題類型</span>
+              </div>
+              <div class="side-live-cell">
+                <span class="val" id="side-live-health">—</span>
+                <span class="lbl">健康分</span>
+              </div>
+            </div>
+            <p class="status" style="margin:0 0 0.5rem;font-size:0.72rem">主要問題（即時）</p>
+            <ul class="live-issue-list" id="live-top-issues">
+              <li style="border:none">等待爬取…</li>
+            </ul>
+          </div>
+        </details>
+      </div>
+
+      <div class="rail-panel" data-rail-panel="deliver">
+        <div class="rail-card">
+          <h3>交付小幫手</h3>
+          <p class="rail-hint">調整品牌或補 AI 文案後，回到左側重新整理報告。</p>
+          <ul class="rail-links">
+            <li><a href="/workspace">帳號與方案</a></li>
+            <li><a href="/branding">報告品牌</a></li>
+            <li><a href="/ai">AI 文案設定</a></li>
+          </ul>
+        </div>
+        <details class="side-section" id="side-schedule">
+          <summary>排程爬取 <span class="side-badge idle">Pro+</span></summary>
+          <div class="side-body">
+            <p class="status" style="margin:0 0 0.5rem;font-size:0.72rem">每週自動爬取並比對差異。</p>
+            <button type="button" class="secondary full-width" id="btn-schedule-wizard">產生 cron 指令</button>
+            <pre class="schedule-cmd-box hidden" id="schedule-cmd"></pre>
+          </div>
+        </details>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="ss-statusbar" id="ss-statusbar">
+    <span class="ss-status-text" id="ss-status-text">就緒 — 桌面版</span>
+    <span class="ss-status-hints" aria-hidden="false">
+      <span class="ss-status-hint"><kbd id="ss-kbd-mod-bar">⌘</kbd>+<kbd>Enter</kbd> 開始</span>
+      <span class="ss-status-hint"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 步驟</span>
+      <span class="ss-status-hint"><kbd>Esc</kbd> 設定</span>
+    </span>
+  </footer>
+    </div>
+  </div>
+
+  <div class="console-settings-mount" hidden aria-hidden="true">
+    <input type="text" id="tenant_id" value="default">
+    <select id="plan_id">
+      <option value="free">Free</option>
+      <option value="starter">Starter</option>
+      <option value="pro" selected>Pro</option>
+      <option value="agency">Agency</option>
+    </select>
+    <input type="password" id="api_key" autocomplete="off">
+    <input type="text" id="slack_webhook">
+    <input type="text" id="consultant_name">
+    <input type="text" id="logo_url">
+    <input type="text" id="accent_color" value="#6ec9a0">
+    <select id="ai_provider"></select>
+    <input type="text" id="ai_model_filter">
+    <select id="ai_model"></select>
+    <input type="text" id="ai_model_custom" class="hidden">
+    <input type="password" id="ai_api_key" autocomplete="off">
+    <div id="ai_base_url_row" class="hidden"><input type="text" id="ai_base_url"></div>
+    <span id="ai-provider-docs"></span>
+    <input type="checkbox" id="auto_ai_polish">
+    <span id="usage-status"></span>
+  </div>
+
+  <script src="/ui/app-shell.js"></script>
+  <script src="/ui/console-store.js"></script>
+  <script src="/ui/ai-settings.js"></script>
+  <script src="/ui/nav-back.js"></script>
+  <script src="/ui/topnav.js"></script>
+  <script src="/ui/desktop-chrome.js"></script>
   <script>
+    SiteSpiderNav.render('console');
+    function ssToast(msg, type) {
+      if (window.SiteSpiderShell && SiteSpiderShell.toast) SiteSpiderShell.toast(msg, type || 'info');
+      else alert(msg);
+    }
+    function ssBanner(msg, type) {
+      if (window.SiteSpiderShell && SiteSpiderShell.showBanner) SiteSpiderShell.showBanner('form-banner', msg, type || 'error');
+      else ssToast(msg, type);
+    }
+    function isDismissedCallout(key) {
+      try { return localStorage.getItem(key) === '1'; } catch (_) { return false; }
+    }
+    function initDismissibleCallouts() {
+      document.querySelectorAll('.callout.dismissible[data-dismiss-key]').forEach((el) => {
+        const key = el.dataset.dismissKey;
+        if (key && isDismissedCallout(key)) {
+          el.classList.add('hidden');
+          return;
+        }
+        const btn = el.querySelector('.callout-dismiss');
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+          el.classList.add('hidden');
+          if (key) {
+            try { localStorage.setItem(key, '1'); } catch (_) {}
+          }
+        });
+      });
+    }
     const depthSlider = document.getElementById('max_depth');
     const depthVal = document.getElementById('depth-val');
     depthSlider.addEventListener('input', () => { depthVal.textContent = depthSlider.value; });
 
-    let currentJobId = null;
-    let pollTimer = null;
+    const DELIVERY_GROUPS = [
+      ['客戶交付', [
+        ['REPORT-zh.html', '交付導覽'],
+        ['delivery-summary.html', '一頁摘要'],
+        ['seo-briefs.html', 'SEO 建議簡報'],
+        ['ai-hub.html', 'AI 交付總覽'],
+        ['ai-page-copy.html', 'AI 標題與描述'],
+        ['ai-faq.html', 'AI 常見問答'],
+        ['priority_summary.md', '修復優先順序'],
+        ['issue_heatmap.html', '問題熱力圖'],
+      ]],
+      ['AI 文案檔', [
+        ['ai-suggestions.md', '綜合建議（文字）'],
+        ['ai-polish-meta.json', 'AI 執行紀錄（資料）'],
+        ['ai-polish-meta.html', 'AI 執行紀錄'],
+        ['ai-page-copy.csv', '標題描述（試算表）'],
+        ['ai-faq-cms.html', 'FAQ 貼上版'],
+        ['llms.txt.draft', 'llms.txt 草稿'],
+        ['llms-full.txt.draft', 'llms-full 草稿'],
+      ]],
+      ['圖表分析', [
+        ['dashboard.html', '分析儀表板'],
+        ['index.html', '站內技術報告'],
+        ['link_graph.html', '內鏈關係圖'],
+        ['link_graph_webgl.html', '內鏈圖（3D）'],
+        ['inspector.html', '單頁檢視'],
+        ['images-gallery.html', '圖片稽核'],
+      ]],
+      ['資料匯出', [
+        ['geo.csv', 'GEO 分數'],
+        ['rich_results.csv', '複合式搜尋結果'],
+        ['link_graph.gexf', '內鏈圖（Gephi）'],
+        ['serp_rank.csv', '搜尋排名'],
+      ]],
+    ];
+    const AI_ONLY_FILES = new Set([
+      'ai-hub.html', 'ai-page-copy.html', 'ai-faq.html', 'ai-suggestions.md',
+      'ai-page-copy.csv', 'ai-faq-cms.html', 'llms.txt.draft', 'llms-full.txt.draft',
+    ]);
+    const STORAGE_KEY = ConsoleStore.STORAGE_KEY;
 
-    async function loadInfo() {
-      const res = await fetch('/api/info');
-      const info = await res.json();
-      document.getElementById('root').value = info.default_root || '';
-      if (!info.lighthouse_available) {
-        document.getElementById('lh-warn').classList.remove('hidden');
+    let currentJobId = null;
+    let currentTenantId = 'default';
+    let pollTimer = null;
+    let uploadedConfigPath = '';
+    let fastResultsShown = false;
+    let lastDeliveryJob = null;
+    window.__plansById = {};
+
+    let celebrateDone = false;
+    let autoOpenDone = false;
+    let aiOpenDone = false;
+    let aiPollTimer = null;
+    let aiPollNoDataTicks = 0;
+
+    function isMac() {
+      return /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent);
+    }
+
+    function updateSidebarLive(job) {
+      const sideLive = document.getElementById('side-live');
+      const badge = document.getElementById('live-issue-badge');
+      const running = job.status === 'running' || job.status === 'exporting';
+      sideLive.classList.toggle('is-active', running);
+      badge.classList.toggle('idle', !running);
+
+      const p = job.progress || {};
+      const live = job.live || {};
+      const done = p.done || 0;
+      document.getElementById('side-live-pages').textContent = done;
+
+      let issueHits = live.issue_hits;
+      let issueTypes = live.issue_types;
+      const s = job.summary || {};
+      if (s.issues && Object.keys(s.issues).length) {
+        issueHits = Object.values(s.issues).reduce((n, urls) => n + new Set(urls).size, 0);
+        issueTypes = Object.keys(s.issues).length;
+      } else if (issueHits == null) {
+        issueHits = 0;
+        issueTypes = 0;
       }
+      document.getElementById('side-live-issues').textContent = issueHits;
+      document.getElementById('side-live-types').textContent = issueTypes;
+      badge.textContent = issueTypes > 0 ? issueTypes + ' 類' : (running ? '…' : '—');
+
+      const healthEl = document.getElementById('side-live-health');
+      if (s.health_score != null) {
+        healthEl.textContent = s.health_score;
+        healthEl.style.color = s.health_score >= 70 ? 'var(--color-accent)' : 'var(--color-warn)';
+      } else {
+        healthEl.textContent = running ? '…' : '—';
+        healthEl.style.color = '';
+      }
+
+      const ul = document.getElementById('live-top-issues');
+      const labels = window.__issueLabels || {};
+      const issues = s.issues || {};
+      const sorted = Object.entries(issues).sort((a, b) => new Set(b[1]).size - new Set(a[1]).size);
+      if (!sorted.length) {
+        ul.innerHTML = running
+          ? '<li style="border:none;color:var(--color-text-disabled)">分析進行中…</li>'
+          : '<li style="border:none">尚無資料</li>';
+        return;
+      }
+      ul.innerHTML = '';
+      sorted.slice(0, 6).forEach(([k, urls]) => {
+        const li = document.createElement('li');
+        li.innerHTML = '<span>' + (labels[k] || k) + '</span><span>' + new Set(urls).size + '</span>';
+        ul.appendChild(li);
+      });
+    }
+
+    function resetSidebarLive() {
+      celebrateDone = false;
+      autoOpenDone = false;
+      aiOpenDone = false;
+      if (aiPollTimer) { clearInterval(aiPollTimer); aiPollTimer = null; }
+      document.getElementById('side-live').classList.add('is-active');
+      document.getElementById('live-issue-badge').textContent = '…';
+      document.getElementById('live-issue-badge').classList.remove('idle');
+      document.getElementById('side-live-pages').textContent = '0';
+      document.getElementById('side-live-issues').textContent = '0';
+      document.getElementById('side-live-types').textContent = '0';
+      document.getElementById('side-live-health').textContent = '…';
+      document.getElementById('live-top-issues').innerHTML =
+        '<li style="border:none;color:var(--color-text-disabled)">分析進行中…</li>';
+    }
+
+    function maybeCelebrate(job) {
+      if (celebrateDone || job.status !== 'done') return;
+      celebrateDone = true;
+      const card = document.getElementById('result-card');
+      if (card) {
+        card.classList.remove('celebrate-flash');
+        void card.offsetWidth;
+        card.classList.add('celebrate-flash');
+      }
+      if (window.SiteSpiderShell && SiteSpiderShell.celebrate) SiteSpiderShell.celebrate();
+    }
+
+    function maybeAutoOpenReport(job) {
+      const cb = document.getElementById('auto_open_report');
+      if (!cb || !cb.checked || autoOpenDone || !job.job_id) return;
+      autoOpenDone = true;
+      const tenant = document.getElementById('tenant_id').value.trim() || 'default';
+      window.open('/reports/' + tenant + '/' + job.job_id + '/REPORT-zh.html', '_blank');
+    }
+
+    function setupKeyboardShortcuts() {
+      const mod = document.getElementById('kbd-mod');
+      if (mod) mod.textContent = isMac() ? '⌘' : 'Ctrl';
+
+      document.addEventListener('keydown', function (ev) {
+        const tag = (ev.target && ev.target.tagName) || '';
+        const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || ev.target.isContentEditable;
+        const modKey = isMac() ? ev.metaKey : ev.ctrlKey;
+
+        if (modKey && ev.key === 'Enter' && !document.getElementById('btn-start').disabled) {
+          if (currentStep === 1) {
+            ev.preventDefault();
+            document.getElementById('crawl-form').requestSubmit();
+          }
+          return;
+        }
+
+        if (ev.key === 'Escape' && !pollTimer) {
+          setStep(1);
+          return;
+        }
+
+        if (typing || pollTimer) return;
+
+        if (ev.key === '1') setStep(1);
+        if (ev.key === '2' && currentJobId) setStep(2);
+        if (ev.key === '3' && (fastResultsShown || celebrateDone)) setStep(3);
+      });
+    }
+    let crawlTargetUrl = '';
+    let crawlMaxPages = 500;
+    const RING_C = 251.2;
+
+    function formatElapsed(ms) {
+      const s = Math.floor(ms / 1000);
+      if (s < 60) return s + 's';
+      return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+    }
+
+    function sanitizeCrawlUrl(raw) {
+      const s = (raw || '').trim();
+      if (!s) return s;
+      try {
+        const u = new URL(s);
+        if (!u.pathname.includes('://')) return u.href;
+        const idx = u.pathname.indexOf('://');
+        let path = u.pathname.slice(0, idx);
+        if (path.endsWith('/index')) path = path.slice(0, -6) + '/';
+        else if (path.endsWith('index')) path = path.slice(0, -5) + '/';
+        else if (!path.endsWith('/')) path += '/';
+        u.pathname = path;
+        return u.href;
+      } catch (_) {
+        return s;
+      }
+    }
+
+    function crawlUrlIssue(raw) {
+      const s = (raw || '').trim();
+      if (!s) return '請輸入起始 URL';
+      try {
+        new URL(s);
+      } catch (_) {
+        return 'URL 格式無效';
+      }
+      if (/:\/\/.*:\/\//.test(s.replace(/^https?:\/\//, ''))) {
+        return 'URL 含有無效片段（請刪除多餘的 :// 或 example.com）';
+      }
+      if (/example\.com/i.test(s) && /vitagreen|123deal|allure/i.test(s)) {
+        return '起始 URL 似乎混入了範例網址，請只保留客戶網域';
+      }
+      return null;
+    }
+
+    function applySanitizedUrlField() {
+      const el = document.getElementById('url');
+      const clean = sanitizeCrawlUrl(el.value);
+      if (clean && clean !== el.value.trim()) {
+        el.value = clean;
+        saveFormToStorage();
+        return true;
+      }
+      return false;
+    }
+
+    function abortCrawlStart(userMsg) {
+      setStep(1);
+      document.getElementById('btn-start').disabled = false;
+      if (window.SiteSpiderShell) SiteSpiderShell.setBrandActive(false);
+      const st = document.getElementById('live-status');
+      if (st) {
+        st.textContent = '—';
+        st.className = 'stat-val';
+      }
+      document.getElementById('export-phase').classList.add('hidden');
+      document.getElementById('progress-text').textContent = '尚未開始';
+      document.getElementById('progress-bar').style.width = '0%';
+      const pctEl = document.getElementById('progress-pct');
+      if (pctEl) pctEl.textContent = '0%';
+      if (userMsg) log(userMsg);
+    }
+
+    function formatJobError(err) {
+      if (!err) return '未知錯誤';
+      const s = String(err);
+      if (s.includes('爬取次數已達上限')) {
+        return s + '（可到「帳號與方案」查看用量，或改選較高方案）';
+      }
+      if (s.includes('No such file or directory') && s.includes('reports/')) {
+        return '無法建立報告資料夾，請確認專案目錄具寫入權限後再試';
+      }
+      if (s.includes('ENOENT') || s.includes('No such file or directory')) {
+        return '找不到必要檔案，請檢查起始 URL 或設定檔路徑';
+      }
+      const oneLine = s.split('\n')[0];
+      return oneLine.length > 160 ? oneLine.slice(0, 160) + '…' : oneLine;
+    }
+
+    function setExportPhase(phase) {
+      const box = document.getElementById('export-phase');
+      if (!box) return;
+      const order = ['crawl', 'fast', 'standard', 'complete'];
+      const idx = order.indexOf(phase);
+      box.classList.remove('hidden');
+      box.querySelectorAll('.phase-chip').forEach(function (chip) {
+        const p = chip.dataset.phase;
+        const pi = order.indexOf(p);
+        chip.classList.remove('done', 'active');
+        if (pi < idx) chip.classList.add('done');
+        else if (pi === idx) chip.classList.add('active');
+      });
+    }
+
+    function updateLiveDash(job) {
+      const p = job.progress || {};
+      const done = Number(p.done) || 0;
+      const cap = crawlMaxPages || p.total || 1;
+      const total = Math.max(Number(cap) || 1, 1);
+      const pct = Number.isFinite(done / total)
+        ? Math.min(100, Math.max(0, Math.round((done / total) * 100)))
+        : 0;
+
+      document.getElementById('live-pages').textContent = done;
+      document.getElementById('live-total').textContent = crawlMaxPages || total;
+      document.getElementById('live-ring-pct').textContent = pct + '%';
+      const ring = document.getElementById('live-ring-fg');
+      if (ring) ring.style.strokeDashoffset = String(RING_C * (1 - pct / 100));
+
+      if (crawlStartTime) {
+        document.getElementById('live-elapsed').textContent = formatElapsed(Date.now() - crawlStartTime);
+      }
+
+      const url = p.current || job.site_url || crawlTargetUrl || '—';
+      const urlEl = document.getElementById('live-url');
+      urlEl.textContent = url;
+      urlEl.title = url;
+
+      const st = document.getElementById('live-status');
+      st.className = 'stat-val';
+      if (job.status === 'exporting') {
+        st.textContent = 'EXPORT';
+        st.classList.add('status-export');
+        setExportPhase(job.export_phase === 'standard' ? 'standard' : 'fast');
+      } else if (job.status === 'running') {
+        st.textContent = '進行中';
+        st.classList.add('status-run');
+        setExportPhase('crawl');
+      } else if (job.status === 'done') {
+        st.textContent = '完成';
+        st.classList.add('status-run');
+        setExportPhase('complete');
+        if (window.SiteSpiderShell) SiteSpiderShell.setBrandActive(false);
+      } else if (job.status === 'error') {
+        st.textContent = '失敗';
+        st.classList.add('status-run');
+        if (window.SiteSpiderShell) SiteSpiderShell.setBrandActive(false);
+      }
+    }
+
+    function resetLiveDash() {
+      crawlStartTime = Date.now();
+      document.getElementById('live-pages').textContent = '0';
+      document.getElementById('live-elapsed').textContent = '0s';
+      document.getElementById('live-ring-pct').textContent = '0%';
+      const ring = document.getElementById('live-ring-fg');
+      if (ring) ring.style.strokeDashoffset = String(RING_C);
+      document.getElementById('export-phase').classList.add('hidden');
+      document.getElementById('export-phase').querySelectorAll('.phase-chip').forEach(function (c) {
+        c.classList.remove('done', 'active');
+      });
+      if (window.SiteSpiderShell) SiteSpiderShell.setBrandActive(true);
+    }
+
+    let currentStep = 1;
+
+    function syncStepUrl(step, jobId, tenantId) {
+      const s = step >= 1 && step <= 3 ? step : 3;
+      let url = '/?step=' + s;
+      const jid = (jobId || '').trim();
+      if (jid && s >= 2) {
+        url =
+          '/?tenant=' +
+          encodeURIComponent((tenantId || 'default').trim() || 'default') +
+          '&job=' +
+          encodeURIComponent(jid) +
+          '&step=' +
+          s;
+      }
+      try {
+        history.replaceState({ ssDelivery: !!jid && s === 3 }, '', url);
+      } catch (_) {}
+    }
+
+    function goNewCrawl() {
+      setRestoreStatus('', false);
+      celebrateDone = false;
+      fastResultsShown = false;
+      currentJobId = null;
+      lastDeliveryJob = null;
+      syncStepUrl(1, '', '');
+      setStep(1);
+      populateJobSwitcher();
+      document.getElementById('url').focus();
+      ssToast('已回到步驟 1，可輸入新網址開始爬取', 'info');
+    }
+
+    const CONTEXT_COPY = {
+      1: ['設定這次要爬的網站', '填網址與客戶名稱，按「開始爬取」即可'],
+      2: ['正在爬取與匯出', '中間可看右側即時問題；完成後會自動進入交付'],
+      3: ['交付給客戶', '左側開啟導覽與下載；右側瀏覽全部檔案'],
+    };
+
+    function updateConsoleChrome(step) {
+      const layout = document.getElementById('main-content');
+      if (layout) layout.dataset.consoleStep = String(step);
+      const copy = CONTEXT_COPY[step] || CONTEXT_COPY[1];
+      const titleEl = document.getElementById('context-title');
+      const subEl = document.getElementById('context-sub');
+      if (titleEl) titleEl.textContent = copy[0];
+      if (subEl) subEl.textContent = copy[1];
+      const wrap = document.getElementById('job-switcher-wrap');
+      if (wrap) {
+        const hasJobs = (window.__jobHistory || []).some(j => j.status === 'done');
+        wrap.classList.toggle('hidden', step === 1 && !currentJobId && !hasJobs);
+      }
+      populateJobSwitcher();
+    }
+
+    function populateJobSwitcher() {
+      const sel = document.getElementById('job-switcher');
+      if (!sel) return;
+      const jobs = (window.__jobHistory || []).filter(j => j.job_id && j.status === 'done');
+      const prev = sel.value;
+      sel.innerHTML = '';
+      if (!jobs.length) return;
+      jobs.forEach(j => {
+        const opt = document.createElement('option');
+        opt.value = j.job_id;
+        const label = j.client_label || j.site_url || j.job_id;
+        opt.textContent = label.length > 48 ? label.slice(0, 45) + '…' : label;
+        sel.appendChild(opt);
+      });
+      if (currentJobId && jobs.some(j => j.job_id === currentJobId)) {
+        sel.value = currentJobId;
+      } else if (prev && jobs.some(j => j.job_id === prev)) {
+        sel.value = prev;
+      }
+    }
+
+    function setStep(n) {
+      if (n === 2 && !currentJobId) {
+        ssToast('請先完成步驟 1 並按「開始爬取」', 'warn');
+        return;
+      }
+      if (n === 3 && !currentJobId && !celebrateDone && !fastResultsShown) {
+        ssToast('尚無任務可交付：請先爬取，或從右側「最近任務」開啟', 'warn');
+        return;
+      }
+      currentStep = n;
+      document.querySelectorAll('.pipeline-step').forEach(el => {
+        const step = parseInt(el.dataset.step, 10);
+        el.classList.toggle('active', step === n);
+        el.classList.toggle('done', step < n);
+      });
+      document.querySelectorAll('.step-panel').forEach(el => {
+        el.classList.toggle('hidden', el.dataset.stepPanel !== String(n));
+      });
+      updateConsoleChrome(n);
+      if (n === 1) {
+        syncStepUrl(1, '', '');
+      } else if (n === 3 && currentJobId) {
+        syncStepUrl(3, currentJobId, currentTenantId);
+      } else if (n === 2 && currentJobId) {
+        syncStepUrl(2, currentJobId, currentTenantId);
+      }
+      const main = document.getElementById('main-content');
+      if (main && typeof main.scrollIntoView === 'function') {
+        main.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+    document.querySelectorAll('.pipeline-step').forEach(btn => {
+      btn.addEventListener('click', () => setStep(parseInt(btn.dataset.step, 10)));
+    });
+    const btnNewCrawlTop = document.getElementById('btn-new-crawl-top');
+    if (btnNewCrawlTop) btnNewCrawlTop.addEventListener('click', goNewCrawl);
+
+    const jobSwitcher = document.getElementById('job-switcher');
+    if (jobSwitcher) {
+      jobSwitcher.addEventListener('change', () => {
+        const jid = jobSwitcher.value;
+        const job = (window.__jobHistory || []).find(j => j.job_id === jid);
+        if (!job) return;
+        reopenJobDelivery(job);
+        if (job.status === 'done') setStep(3);
+      });
+    }
+
+    const deliveryFileFilter = document.getElementById('delivery-file-filter');
+    if (deliveryFileFilter) {
+      deliveryFileFilter.addEventListener('input', () => {
+        const q = deliveryFileFilter.value.trim().toLowerCase();
+        document.querySelectorAll('#delivery-buttons .delivery-section').forEach(sec => {
+          let anyVisible = false;
+          sec.querySelectorAll('button').forEach(btn => {
+            const text = (btn.textContent || '').toLowerCase();
+            const show = !q || text.includes(q);
+            btn.hidden = !show;
+            if (show) anyVisible = true;
+          });
+          sec.hidden = !anyVisible;
+        });
+      });
+    }
+
+    function authHeaders(extra) {
+      const h = { ...(extra || {}) };
+      const key = document.getElementById('api_key').value.trim();
+      if (key) h['Authorization'] = 'Bearer ' + key;
+      return h;
+    }
+
+    function planHasFeature(feature) {
+      const id = document.getElementById('plan_id').value;
+      const feats = (window.__plansById[id] || {}).features || [];
+      return feats.includes(feature);
+    }
+
+    function applyPlanPageCap() {
+      const id = document.getElementById('plan_id').value;
+      const plan = window.__plansById[id];
+      if (!plan || !plan.max_pages_per_crawl) return;
+      const cap = plan.max_pages_per_crawl;
+      const inp = document.getElementById('max_pages');
+      inp.max = String(cap);
+      const cur = parseInt(inp.value, 10) || 0;
+      if (cur > cap) {
+        inp.value = cap;
+        const hint = document.getElementById('plan-cap-hint');
+        if (hint) {
+          hint.textContent = '已依「' + (plan.name || id) + '」方案將最大頁數調整為 ' + cap;
+          hint.classList.remove('hidden');
+        }
+        saveFormToStorage();
+      }
+    }
+
+    function updateAiPlanGate() {
+      const allowed = planHasFeature('ai_polish');
+      const btn = document.getElementById('btn-ai-polish');
+      const cb = document.getElementById('auto_ai_polish');
+      const hint = document.getElementById('ai-key-hint');
+      if (cb) cb.disabled = !allowed;
+      if (!allowed) {
+        if (btn && !btn.disabled) btn.disabled = true;
+        if (btn) btn.title = 'AI 文案需 Pro 或以上方案';
+        if (hint && !window.__aiConfigured) {
+          hint.textContent = 'Starter 含每月 1 次 AI 文案；Pro 含 15 次。請在「帳號與方案」升級。';
+        }
+        return;
+      }
+      if (btn && btn.dataset.jobId) btn.title = '產生標題描述、FAQ、llms.txt 等 AI 交付檔';
+    }
+
+    function tenantFromReportDir(abs) {
+      if (!abs) return null;
+      const norm = String(abs).replace(/\\/g, '/');
+      const m = norm.match(/\/reports\/([^/]+)\/([^/]+)\/?$/);
+      if (!m) return null;
+      const first = m[1];
+      const second = m[2];
+      if (second && !/\.(html|json|md|csv|txt|zip)$/i.test(second)) {
+        return first;
+      }
+      return null;
+    }
+
+    function aiHasCoreDeliverables(ai) {
+      if (!ai) return false;
+      const names = new Set((ai.written || []).map(f => String(f).split('/').pop()));
+      return ['ai-page-copy.html', 'ai-faq.html', 'llms.txt.draft'].some(f => names.has(f));
+    }
+
+    function aiDeliveryReady(job) {
+      const ai = job && job.ai;
+      if (!ai) return false;
+      if (ai.status === 'error') return false;
+      if (aiHasCoreDeliverables(ai)) return true;
+      if (ai.status === 'partial') return false;
+      if (ai.status === 'done' && (ai.errors || []).length) return false;
+      return ai.status === 'done';
+    }
+
+    function ensureAiPoll() {
+      if (aiPollTimer) return;
+      aiPollNoDataTicks = 0;
+      aiPollTimer = setInterval(async () => {
+        if (!currentJobId) return;
+        try {
+          const jr = await fetch('/api/job/' + currentJobId);
+          const data = await jr.json();
+          if (!data.ai) {
+            aiPollNoDataTicks += 1;
+            if (aiPollNoDataTicks >= 20) { // ~30s
+              clearInterval(aiPollTimer);
+              aiPollTimer = null;
+            }
+            return;
+          }
+          aiPollNoDataTicks = 0;
+          updateAiFromJob(data);
+        } catch (_) {}
+      }, 1500);
+    }
+
+    function deliveryBtnState(file, job) {
+      if (!AI_ONLY_FILES.has(file)) return { disabled: false, title: '' };
+      if (!planHasFeature('ai_polish')) {
+        return { disabled: true, title: '需 Pro 方案' };
+      }
+      if (!aiDeliveryReady(job)) {
+        const ai = job && job.ai;
+        const errHint = (ai && ai.errors && ai.errors.length)
+          ? ai.errors[0]
+          : '請先在「AI 文案」確認平台與金鑰，再按「✨ 產生 AI 文案」';
+        return { disabled: true, title: errHint };
+      }
+      return { disabled: false, title: '' };
+    }
+
+    async function loadPlans() {
+      try {
+        const res = await fetch('/api/plans');
+        const data = await res.json();
+        (data.plans || []).forEach(p => { window.__plansById[p.id] = p; });
+        const sel = document.getElementById('plan_id');
+        const cur = sel.value;
+        sel.innerHTML = '';
+        (data.plans || []).forEach(p => {
+          const o = document.createElement('option');
+          o.value = p.id;
+          o.textContent = p.name + (p.price_usd_month === 0 ? ' (免費)' : '');
+          sel.appendChild(o);
+        });
+        if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+        const storedPlan = window.__storedPlanId;
+        if (storedPlan && [...sel.options].some(o => o.value === storedPlan)) sel.value = storedPlan;
+        updateAiPlanGate();
+        applyPlanPageCap();
+      } catch (_) {}
+    }
+
+    function openReportFile(base, file) {
+      const url = base + file;
+      const w = window.open(url, '_blank', 'noopener');
+      if (!w) {
+        ssToast('瀏覽器阻擋彈出視窗，改為本頁開啟報告', 'warn');
+        location.href = url;
+      }
+    }
+
+    function reportBase(job) {
+      const jid = (job && job.job_id) || currentJobId;
+      const rawDir = job && (job.report_dir_abs || job.report_dir);
+      const abs = typeof rawDir === 'string' ? rawDir.replace(/\\/g, '/') : '';
+      if (abs && jid) {
+        const marker = '/reports/';
+        const idx = abs.indexOf(marker);
+        if (idx >= 0) {
+          const rest = abs.slice(idx + marker.length).replace(/\/$/, '');
+          const segs = rest.split('/').filter(Boolean);
+          if (segs.length === 1 && segs[0] === jid) {
+            return '/reports/' + jid + '/';
+          }
+          if (segs.length >= 2 && segs[segs.length - 1] === jid) {
+            return '/reports/' + segs[segs.length - 2] + '/' + jid + '/';
+          }
+        }
+      }
+      const tid = (job && job.tenant_id) || tenantFromReportDir(abs) || currentTenantId || 'default';
+      if (!jid) return '/reports/' + tid + '/';
+      return '/reports/' + tid + '/' + jid + '/';
+    }
+
+    function renderDeliveryNextSteps(job) {
+      const box = document.getElementById('delivery-next-steps');
+      const list = document.getElementById('delivery-next-steps-list');
+      if (!box || !list || !job) return;
+      const steps = ['先開「交付導覽」了解報告結構與檔案清單'];
+      if (!aiHasCoreDeliverables(job.ai) && planHasFeature('ai_polish')) {
+        steps.push('在下方按「產生 AI 文案」，取得各頁 Title／Meta 與 FAQ');
+      } else if (aiHasCoreDeliverables(job.ai)) {
+        steps.push('到「AI 交付」檢視並複製文案給客戶');
+      }
+      steps.push('用 ZIP 或「客戶單檔 HTML」交付；不需上線主機');
+      if (planHasFeature('portal_share')) {
+        steps.push('若要線上閱讀，再產生「客戶分享連結」');
+      }
+      list.innerHTML = steps.map((s) => '<li>' + s + '</li>').join('');
+      box.hidden = false;
+    }
+
+    async function refreshUsage() {
+      const tid = document.getElementById('tenant_id').value.trim() || 'default';
+      try {
+        const res = await fetch('/api/usage?tenant_id=' + encodeURIComponent(tid), { headers: authHeaders() });
+        const d = await res.json();
+        if (d.error) {
+          document.getElementById('usage-status').textContent = d.error;
+          return;
+        }
+        const lim = d.limits || {};
+        let aiPart = '';
+        const aiCap = lim.ai_polish_limit_effective || lim.max_ai_polish_per_month || 0;
+        if (aiCap > 0) {
+          aiPart = ' · AI ' + (d.usage.ai_polishes || 0) + '/' + aiCap;
+          if (lim.ai_polish_bonus > 0) aiPart += ' (+' + lim.ai_polish_bonus + ' 加購)';
+        }
+        document.getElementById('usage-status').textContent =
+          '方案 ' + d.plan_id + ' · 本月爬取 ' + (d.usage.crawls || 0) + '/' + lim.max_crawls_per_month +
+          aiPart +
+          ' · SERP ' + (d.usage.serp_queries || 0) + '/' + lim.max_serp_queries_per_month;
+      } catch (_) {}
     }
 
     function log(msg) {
       const el = document.getElementById('log');
+      if (!el) return;
       el.textContent += msg + '\n';
       el.scrollTop = el.scrollHeight;
+    }
+
+    function setRestoreStatus(msg, visible) {
+      const el = document.getElementById('delivery-restore-status');
+      if (!el) return;
+      el.textContent = msg || '';
+      el.classList.toggle('hidden', !visible);
+    }
+
+    function applyForm(cfg) {
+      if (cfg.config_path && cfg.config_path !== '（已上傳）') {
+        document.getElementById('config_path').value = cfg.config_path;
+        uploadedConfigPath = '';
+      } else if (cfg.config_path === '（已上傳）') {
+        document.getElementById('config_path').value = '';
+      }
+      if (cfg.site_url) document.getElementById('url').value = cfg.site_url;
+      if (cfg.mode) document.getElementById('mode').value = cfg.mode;
+      if (cfg.max_pages != null) document.getElementById('max_pages').value = cfg.max_pages;
+      if (cfg.max_depth != null) {
+        document.getElementById('max_depth').value = cfg.max_depth;
+        depthVal.textContent = cfg.max_depth;
+      }
+      if (cfg.workers != null) document.getElementById('workers').value = cfg.workers;
+      document.getElementById('respect_robots').checked = !!cfg.respect_robots;
+      document.getElementById('use_sitemap').checked = cfg.use_sitemap !== false;
+      document.getElementById('check_external').checked = !!cfg.check_external;
+      document.getElementById('lighthouse').checked = !!cfg.lighthouse;
+      document.getElementById('lighthouse_max').value = cfg.lighthouse_max ?? 5;
+      document.getElementById('require_json_ld').checked = !!cfg.require_json_ld;
+      document.getElementById('xlsx').checked = !!cfg.xlsx;
+      document.getElementById('client_report').checked = !!cfg.client_report;
+      document.getElementById('render_js').checked = !!cfg.render_js;
+      document.getElementById('download_images').checked = !!cfg.download_images;
+      if (cfg.max_images_download != null) {
+        document.getElementById('max_images_download').value = cfg.max_images_download;
+      }
+      document.getElementById('strip_query').checked = !!cfg.strip_query;
+      if (cfg.client_label) document.getElementById('client_label').value = cfg.client_label;
+      const ex = (cfg.exclude_paths || []).join(',');
+      if (ex) document.getElementById('exclude_paths').value = ex;
+      document.getElementById('gsc_inspect_max').value = cfg.gsc_inspect_max ?? 0;
+      document.getElementById('gsc_site_url').value = cfg.gsc_site_url || cfg.site_url || '';
+      if (cfg.consultant_name != null || cfg.logo_url != null || cfg.accent_color) {
+        ConsoleStore.savePartial({
+          consultant_name: cfg.consultant_name || '',
+          logo_url: cfg.logo_url || '',
+          accent_color: cfg.accent_color || ConsoleStore.DEFAULT_ACCENT,
+        });
+      }
+      document.getElementById('config-status').textContent =
+        '已載入：' + (cfg.config_path || '上傳的設定');
+      saveFormToStorage();
+    }
+
+    function saveFormToStorage() {
+      const presets = [...document.querySelectorAll('#custom-presets input:checked')].map(el => el.value);
+      ConsoleStore.savePartial({
+        url: document.getElementById('url').value,
+        max_pages: document.getElementById('max_pages').value,
+        max_depth: document.getElementById('max_depth').value,
+        config_path: document.getElementById('config_path').value,
+        client_label: document.getElementById('client_label').value,
+        custom_preset_ids: presets,
+        auto_open_report: document.getElementById('auto_open_report').checked,
+        auto_ai_polish: document.getElementById('auto_ai_polish').checked,
+        ai_provider: document.getElementById('ai_provider').value,
+        ai_model: SiteSpiderAi.getSelectedAiModel(),
+        ai_model_custom: document.getElementById('ai_model_custom').value,
+        ai_api_key: document.getElementById('ai_api_key').value,
+        ai_base_url: document.getElementById('ai_base_url').value,
+        tenant_id: document.getElementById('tenant_id').value.trim(),
+        plan_id: document.getElementById('plan_id').value,
+        api_key: document.getElementById('api_key').value,
+        slack_webhook: document.getElementById('slack_webhook').value,
+        download_images: document.getElementById('download_images').checked,
+        max_images_download: document.getElementById('max_images_download').value,
+      });
+    }
+
+    function loadFormFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        ConsoleStore.applyToDocument();
+        if (data.plan_id) window.__storedPlanId = data.plan_id;
+        if (data.url) document.getElementById('url').value = sanitizeCrawlUrl(data.url);
+        if (data.max_pages) document.getElementById('max_pages').value = data.max_pages;
+        if (data.max_depth) {
+          document.getElementById('max_depth').value = data.max_depth;
+          depthVal.textContent = data.max_depth;
+        }
+        if (data.config_path) document.getElementById('config_path').value = data.config_path;
+        if (data.client_label) document.getElementById('client_label').value = data.client_label;
+        if (data.custom_preset_ids) {
+          data.custom_preset_ids.forEach(id => {
+            const el = document.querySelector('#custom-presets input[value="' + id + '"]');
+            if (el) el.checked = true;
+          });
+        }
+        if (data.auto_open_report != null) {
+          document.getElementById('auto_open_report').checked = !!data.auto_open_report;
+        }
+        if (data.download_images != null) {
+          document.getElementById('download_images').checked = !!data.download_images;
+        }
+        if (data.max_images_download) {
+          document.getElementById('max_images_download').value = data.max_images_download;
+        }
+        SiteSpiderAi.onAiProviderChange(data.ai_model || data.ai_model_custom);
+      } catch (_) {}
+    }
+
+    function providerById(id) {
+      return SiteSpiderAi.providerById(id);
+    }
+
+    function getSelectedAiModel() {
+      return SiteSpiderAi.getSelectedAiModel();
+    }
+
+    function renderAiProviders(providers, defaultId) {
+      SiteSpiderAi.renderAiProviders(providers, defaultId);
+      saveFormToStorage();
+    }
+
+    function onAiProviderChange(preferredModel) {
+      SiteSpiderAi.onAiProviderChange(preferredModel);
+      saveFormToStorage();
+    }
+
+    function filterAiModels() {
+      SiteSpiderAi.filterAiModels();
+    }
+
+    function renderCustomPresets(presets) {
+      const box = document.getElementById('custom-presets');
+      box.innerHTML = '';
+      (presets || []).forEach(p => {
+        const lab = document.createElement('label');
+        lab.innerHTML = '<input type="checkbox" value="' + p.id + '"> ' + (p.label || p.id);
+        box.appendChild(lab);
+      });
+    }
+
+    function aiHistoryBadge(ai) {
+      if (!ai || !ai.status) return '';
+      if (ai.status === 'running') return ' · AI …';
+      if (ai.status === 'error') return ' · <span style="color:var(--color-danger,#f87171)">AI ✗</span>';
+      if (ai.status === 'partial' || ((ai.errors || []).length && !aiHasCoreDeliverables(ai))) {
+        return ' · <span style="color:var(--color-warn,#d4a574)">AI ⚠</span>';
+      }
+      if (ai.status === 'done') return ' · <span style="color:var(--color-accent)">AI ✓</span>';
+      return '';
+    }
+
+    function persistLastDelivery(jobId, tenantId, step) {
+      if (ConsoleStore.saveLastDelivery) {
+        ConsoleStore.saveLastDelivery(jobId, tenantId, step || 3);
+      }
+      try {
+        sessionStorage.setItem(
+          'sitespider-last-delivery',
+          JSON.stringify({ job_id: jobId, tenant_id: tenantId || 'default', step: step || 3 }),
+        );
+      } catch (_) {}
+    }
+
+    function loadStoredDelivery() {
+      const fromStore = ConsoleStore.loadLastDelivery ? ConsoleStore.loadLastDelivery() : null;
+      if (fromStore && fromStore.job_id) return fromStore;
+      try {
+        const raw = sessionStorage.getItem('sitespider-last-delivery');
+        if (!raw) return null;
+        const d = JSON.parse(raw);
+        if (d && d.job_id) return d;
+      } catch (_) {}
+      return null;
+    }
+
+    function syncDeliveryUrl(jobId, tenantId, step) {
+      syncStepUrl(step, jobId, tenantId);
+    }
+
+    async function summaryFromReportFiles(job) {
+      if (job.summary && (job.summary.pages != null || job.summary.health_score != null)) {
+        return job.summary;
+      }
+      const base = reportBase(job);
+      try {
+        const s = await (await fetch(base + 'summary.json')).json();
+        const issues = {};
+        (s.top_issues || []).forEach((row) => {
+          if (row && row.key) issues[row.key] = row.urls || row.sample_urls || [];
+        });
+        return {
+          pages: s.url_count,
+          blocked: 0,
+          duration: s.duration_sec,
+          health_score: s.health_score,
+          health_grade_label: s.health_grade_label,
+          issues,
+        };
+      } catch (_) {
+        return {
+          pages: job.pages || 0,
+          blocked: 0,
+          duration: 0,
+          issues: {},
+        };
+      }
+    }
+
+    async function restoreDeliveryView(job, step) {
+      if (!job || !job.job_id) return false;
+      try {
+        currentJobId = job.job_id;
+        currentTenantId = job.tenant_id || document.getElementById('tenant_id').value.trim() || 'default';
+        const tidInput = document.getElementById('tenant_id');
+        if (tidInput) tidInput.value = currentTenantId;
+        celebrateDone = true;
+        fastResultsShown = true;
+        job.summary = await summaryFromReportFiles(job);
+        job.status = job.status || 'done';
+        job.tenant_id = currentTenantId;
+        const reportPath = job.report_dir_abs || job.report_dir;
+        if (reportPath) {
+          job.report_dir_abs = reportPath;
+          job.report_dir = reportPath;
+        }
+        if (!reportPath) {
+          setRestoreStatus('找不到報告目錄，請在右側「最近任務」點「開啟交付」', true);
+          return false;
+        }
+        showResults(job);
+        attachReportPaths(job);
+        setStep(step >= 1 && step <= 3 ? step : 3);
+        if (job.ai) updateAiFromJob(job);
+        persistLastDelivery(job.job_id, currentTenantId, step);
+        syncDeliveryUrl(job.job_id, currentTenantId, step);
+        setRestoreStatus('', false);
+        log('已還原任務「' + job.job_id + '」的交付畫面');
+        return true;
+      } catch (err) {
+        console.error('restoreDeliveryView', err);
+        setRestoreStatus('還原交付畫面失敗，請在右側「最近任務」點「開啟交付」', true);
+        return false;
+      }
+    }
+
+    let restoreDeliveryInflight = false;
+    async function restoreDeliverySession() {
+      if (restoreDeliveryInflight) return;
+      restoreDeliveryInflight = true;
+      try {
+        const qs = new URLSearchParams(location.search);
+        if (qs.get('new') === '1') {
+          setRestoreStatus('', false);
+          goNewCrawl();
+          return;
+        }
+        const jobId = (qs.get('job') || '').trim();
+        if (!jobId) {
+          setRestoreStatus('', false);
+          const stepOnly = parseInt(qs.get('step') || '1', 10);
+          setStep(stepOnly === 2 && currentJobId ? 2 : 1);
+          if (!qs.get('step')) syncStepUrl(1, '', '');
+          return;
+        }
+        const tenant = qs.get('tenant') || 'default';
+        const step = parseInt(qs.get('step') || '3', 10);
+        setRestoreStatus('正在還原交付畫面…', true);
+        const tidInput = document.getElementById('tenant_id');
+        if (tidInput) tidInput.value = tenant;
+        currentTenantId = tenant;
+        try {
+          const res = await fetch('/api/job/' + encodeURIComponent(jobId));
+          if (res.ok) {
+            const job = await res.json();
+            job.job_id = jobId;
+            job.tenant_id = job.tenant_id || tenantFromReportDir(job.report_dir_abs || job.report_dir) || tenant;
+            const done = job.status === 'done' || job.status === 'complete';
+            if (done && (job.report_dir || job.report_dir_abs)) {
+              if (await restoreDeliveryView(job, step)) return;
+            }
+          }
+        } catch (_) {}
+        const hist = window.__jobHistory || [];
+        const row = hist.find((j) => j.job_id === jobId);
+        if (row && (row.report_dir_abs || row.report_dir)) {
+          if (await restoreDeliveryView({
+            job_id: row.job_id,
+            tenant_id: tenantFromReportDir(row.report_dir_abs || row.report_dir) || tenant,
+            report_dir_abs: row.report_dir_abs || row.report_dir,
+            report_dir: row.report_dir_abs || row.report_dir,
+            ai: row.ai,
+            pages: row.pages,
+            client_label: row.client_label,
+            status: 'done',
+          }, step)) return;
+        }
+        setRestoreStatus(
+          '無法還原任務「' + jobId + '」。請確認已執行 bash scripts/dev-ui.sh，並在右側「最近任務」點「開啟交付」。',
+          true,
+        );
+      } finally {
+        restoreDeliveryInflight = false;
+      }
+    }
+
+    function mountDashboardBrandHome() {
+      const brand = document.querySelector('.topbar .brand');
+      if (!brand || brand.dataset.ssHomeBound) return;
+      brand.dataset.ssHomeBound = '1';
+      brand.setAttribute('role', 'link');
+      brand.setAttribute('tabindex', '0');
+      brand.setAttribute('title', '回到步驟 1（新爬取）');
+      brand.style.cursor = 'pointer';
+      const go = () => goNewCrawl();
+      brand.addEventListener('click', (e) => {
+        if (e.target.closest('button, a')) return;
+        go();
+      });
+      brand.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          go();
+        }
+      });
+    }
+
+    function reopenJobDelivery(j) {
+      currentJobId = j.job_id;
+      const fromPath = tenantFromReportDir(j.report_dir_abs);
+      currentTenantId = fromPath || document.getElementById('tenant_id').value.trim() || 'default';
+      if (fromPath) {
+        const tidInput = document.getElementById('tenant_id');
+        if (tidInput) tidInput.value = fromPath;
+      }
+      const job = {
+        job_id: j.job_id,
+        tenant_id: currentTenantId,
+        report_dir: j.report_dir_abs || j.report_dir || '',
+        report_dir_abs: j.report_dir_abs || j.report_dir || '',
+        ai: j.ai,
+        status: 'done',
+        client_label: j.client_label,
+        pages: j.pages,
+      };
+      lastDeliveryJob = job;
+      persistLastDelivery(j.job_id, currentTenantId, 3);
+      summaryFromReportFiles(job).then((summary) => {
+        job.summary = summary;
+        showResults(job);
+        attachReportPaths(job);
+        setStep(3);
+        syncDeliveryUrl(j.job_id, currentTenantId, 3);
+      });
+    }
+
+    async function loadJobHistory() {
+      const res = await fetch('/api/jobs');
+      const data = await res.json();
+      window.__jobHistory = data.jobs || [];
+      const box = document.getElementById('job-history');
+      box.innerHTML = '';
+      window.__jobHistory.forEach((j, idx) => {
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        const label = j.client_label || j.site_url || j.job_id;
+        div.innerHTML =
+          '<div class="history-title">' + label + '</div>' +
+          '<div class="history-meta">' + (j.pages || 0) + ' 頁 · ' + (j.status || '—') +
+          aiHistoryBadge(j.ai) + '</div>';
+        if (j.job_id && j.status === 'done') {
+          const row = document.createElement('div');
+          row.className = 'history-actions';
+          const mkBtn = (text, fn, wide) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'ghost' + (wide ? ' history-action-wide' : '');
+            btn.textContent = text;
+            btn.onclick = fn;
+            return btn;
+          };
+          row.appendChild(mkBtn('開啟交付', () => {
+            reopenJobDelivery(j);
+            openReportFile(reportBase(j), 'REPORT-zh.html');
+          }));
+          if (aiHasCoreDeliverables(j.ai)) {
+            row.appendChild(mkBtn('AI 交付', () => {
+              reopenJobDelivery(j);
+              openReportFile(reportBase(j), 'ai-hub.html');
+            }));
+          } else if (planHasFeature('ai_polish')) {
+            const aiLabel = (j.ai || {}).status === 'error' || (j.ai || {}).errors?.length ? '重試 AI' : 'AI 文案';
+            row.appendChild(mkBtn(aiLabel, () => {
+              reopenJobDelivery(j);
+              runAiPolish(false);
+            }));
+          }
+          if (planHasFeature('compare')) {
+            const prev = window.__jobHistory.slice(idx + 1).find(p => p.status === 'done');
+            if (prev) {
+              row.appendChild(mkBtn('比對', async () => {
+                try {
+                  const tid = tenantFromReportDir(j.report_dir_abs) || document.getElementById('tenant_id').value.trim() || 'default';
+                  const cmp = await fetch('/api/compare', {
+                    method: 'POST',
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({
+                      tenant_id: tid,
+                      baseline_job_id: prev.job_id,
+                      current_job_id: j.job_id,
+                      plan_id: document.getElementById('plan_id').value,
+                    }),
+                  });
+                  const d = await cmp.json();
+                  if (!cmp.ok || d.error) throw new Error(d.error || '比對失敗');
+                  ssToast('比對完成' + (d.has_regressions ? '（有回歸）' : ''), d.has_regressions ? 'warn' : 'success');
+                  if (d.compare_url) window.open(d.compare_url, '_blank');
+                } catch (e) {
+                  ssToast(e.message, 'error');
+                }
+              }));
+            }
+          }
+          div.appendChild(row);
+        }
+        box.appendChild(div);
+      });
+      if (!window.__jobHistory.length) {
+        box.innerHTML = '<p class="empty-hint"><strong>還沒有爬取紀錄</strong>填好網址後按「開始爬取」，完成的任務會出現在這裡。</p>';
+      }
+      const clearBtn = document.getElementById('btn-clear-job-history');
+      if (clearBtn) clearBtn.hidden = !window.__jobHistory.length;
+      populateJobSwitcher();
+    }
+
+    async function parseApiJson(res) {
+      const text = await res.text();
+      const ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (!text) return {};
+      if (ct.includes('json') || text.trim().startsWith('{')) {
+        try {
+          return JSON.parse(text);
+        } catch (_) {
+          throw new Error('伺服器回應格式錯誤，請重新啟動：bash scripts/dev-ui.sh');
+        }
+      }
+      if (res.status === 404) {
+        throw new Error('找不到清除 API，請重新啟動控制台：bash scripts/dev-ui.sh');
+      }
+      throw new Error('伺服器回應異常（' + res.status + '），請確認 dev-ui 已啟動');
+    }
+
+    async function clearAllJobHistory() {
+      if (
+        !confirm(
+          '確定要清除「最近任務」列表？\n\n' +
+            '· 不會刪除 reports/ 資料夾內的報告檔案\n' +
+            '· 之後新完成的爬取仍會出現在列表\n' +
+            '· 若正在檢視某次交付，將回到步驟 1'
+        )
+      ) {
+        return;
+      }
+      const btn = document.getElementById('btn-clear-job-history');
+      if (btn) btn.disabled = true;
+      try {
+        const opts = {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ action: 'clear' }),
+        };
+        let res = await fetch('/api/jobs', opts);
+        if (res.status === 404) {
+          res = await fetch('/api/jobs/clear', { method: 'POST', headers: opts.headers, body: '{}' });
+        }
+        const data = await parseApiJson(res);
+        if (!res.ok || data.error) throw new Error(data.error || '清除失敗');
+        ssToast('已清除最近任務列表', 'success');
+        if (currentJobId || lastDeliveryJob) goNewCrawl();
+        await loadJobHistory();
+      } catch (e) {
+        ssToast(e.message, 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function loadConfigFromPath(rel) {
+      const res = await fetch('/api/config?path=' + encodeURIComponent(rel));
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      applyForm(data);
+    }
+
+    async function loadInfo() {
+      try {
+      const res = await fetch('/api/info');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const info = await res.json();
+      const rootEl = document.getElementById('root');
+      if (rootEl) rootEl.value = info.default_root || '';
+      if (info.site_url) document.getElementById('url').value = info.site_url;
+      if (info.delivery_note) {
+        const sub = document.getElementById('context-sub');
+        if (sub && currentStep === 1) sub.textContent = info.delivery_note;
+      }
+      if (!info.lighthouse_available && !isDismissedCallout('ss-warn-lh')) {
+        document.getElementById('lh-warn').classList.remove('hidden');
+      }
+      if (!info.render_js_available) {
+        if (!isDismissedCallout('ss-warn-js')) document.getElementById('js-warn').classList.remove('hidden');
+        document.getElementById('render_js').disabled = true;
+      }
+      if (info.version) document.getElementById('app-version').textContent = 'v' + info.version;
+      const aiHint = document.getElementById('ai-key-hint');
+      if (aiHint && info.ai_configured) {
+        aiHint.textContent = '伺服器已設定 AI 金鑰，爬取後可自動或手動產生 AI 文案。';
+      }
+      window.__aiConfigured = !!info.ai_configured;
+      if (info.issue_labels) window.__issueLabels = info.issue_labels;
+      renderCustomPresets(info.custom_presets || []);
+      renderAiProviders(info.ai_providers || [], info.ai_provider_default || 'openai');
+      window.__stripeAiBonus = !!info.stripe_ai_bonus_configured;
+      window.__aiBonusPackSize = info.ai_bonus_pack_size || 10;
+      window.__strictPlan = !!info.strict_plan;
+      window.__clientPlanSelectable = info.client_plan_selectable !== false;
+      if (window.__strictPlan) {
+        const sel = document.getElementById('plan_id');
+        if (sel) {
+          sel.disabled = true;
+          sel.title = '方案由訂閱或 API Key 決定，無法手動切換';
+        }
+      }
+      try {
+        const ws = ConsoleStore.loadWorkspace();
+        const tid = (ws.tenant_id || document.getElementById('tenant_id').value || 'default').trim() || 'default';
+        const hdr = {};
+        if (ws.api_key) hdr.Authorization = 'Bearer ' + ws.api_key;
+        fetch('/api/ai/settings?tenant_id=' + encodeURIComponent(tid), { headers: hdr })
+          .then(r => r.json())
+          .then(d => {
+            if (!d || !d.settings) {
+              loadFormFromStorage();
+              return;
+            }
+            ConsoleStore.savePartial(d.settings);
+            loadFormFromStorage();
+            ConsoleStore.applyToDocument();
+            onAiProviderChange(d.settings.ai_model || d.settings.ai_model_custom);
+          })
+          .catch(() => { loadFormFromStorage(); });
+      } catch (_) {
+        loadFormFromStorage();
+      }
+      loadJobHistory().then(() => restoreDeliverySession());
+      loadPlans();
+      refreshUsage();
+      const sel = document.getElementById('preset');
+      (info.example_configs || []).forEach(ex => {
+        const o = document.createElement('option');
+        o.value = ex.path;
+        o.textContent = ex.id;
+        sel.appendChild(o);
+      });
+      const prefer = 'examples/123deal-sitespider.json';
+      if ([...sel.options].some(o => o.value === prefer)) {
+        sel.value = prefer;
+      }
+      mountDashboardBrandHome();
+      } catch (err) {
+        console.error('loadInfo', err);
+        setRestoreStatus('無法連線控制台（請執行 bash scripts/dev-ui.sh）', true);
+        ssToast('無法連線 SiteSpider 伺服器，請確認本機已啟動', 'error');
+      }
+    }
+
+    document.getElementById('btn-load-preset').addEventListener('click', async () => {
+      const p = document.getElementById('preset').value;
+      if (!p) { ssToast('請先選擇範例', 'warn'); return; }
+      try {
+        await loadConfigFromPath(p);
+      } catch (e) {
+        ssToast('載入失敗：' + e.message, 'error');
+      }
+    });
+
+    document.getElementById('btn-preset-smoke').addEventListener('click', () => {
+      document.getElementById('max_pages').value = 12;
+      document.getElementById('max_depth').value = 3;
+      depthVal.textContent = '3';
+      saveFormToStorage();
+    });
+    document.getElementById('btn-quick-smoke').addEventListener('click', () => {
+      document.getElementById('btn-preset-smoke').click();
+      setStep(1);
+      document.getElementById('url').focus();
+      ssToast('已套用試跑 12 頁設定，填好網址後按「開始爬取」', 'info');
+    });
+    const btnClearHistory = document.getElementById('btn-clear-job-history');
+    if (btnClearHistory) btnClearHistory.addEventListener('click', clearAllJobHistory);
+    document.getElementById('btn-preset-full').addEventListener('click', () => {
+      document.getElementById('max_pages').value = 500;
+      document.getElementById('max_depth').value = 10;
+      depthVal.textContent = '10';
+      saveFormToStorage();
+    });
+
+    document.getElementById('btn-clear-config').addEventListener('click', () => {
+      document.getElementById('config_path').value = '';
+      document.getElementById('config-status').textContent = '';
+      uploadedConfigPath = '';
+    });
+
+    document.getElementById('config_file').addEventListener('change', async (ev) => {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      const res = await fetch('/api/config/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: text,
+      });
+      const data = await res.json();
+      if (data.error) { ssToast(data.error, 'error'); return; }
+      applyForm(data);
+      uploadedConfigPath = file.name;
+    });
+
+    function healthRingClass(score) {
+      if (score == null) return '';
+      if (score >= 70) return '';
+      if (score >= 40) return 'warn';
+      return 'danger';
+    }
+
+    function renderHealthHero(s) {
+      const score = s.health_score;
+      const grade = s.health_grade_label || '';
+      if (score == null) {
+        return `<p>已爬取 <strong>${s.pages || 0}</strong> 頁 · robots 封鎖 <strong>${s.blocked || 0}</strong>` +
+          ` · 耗時 <strong>${(s.duration || 0).toFixed(2)}</strong>s</p>`;
+      }
+      const cls = healthRingClass(score);
+      return `<div class="health-hero">
+        <div class="score-ring ${cls}">${score}</div>
+        <div>
+          <p style="margin:0;font-weight:600;font-size:1.05rem">技術 SEO 健康分 · ${grade}</p>
+          <p class="status" style="margin:0.35rem 0 0">
+            已爬取 <strong>${s.pages || 0}</strong> 頁 · robots 封鎖 <strong>${s.blocked || 0}</strong>
+            · 耗時 <strong>${(s.duration || 0).toFixed(2)}</strong>s
+          </p>
+        </div>
+      </div>`;
+    }
+
+    function renderPrimaryCtas(base, job) {
+      const box = document.getElementById('delivery-primary');
+      box.innerHTML = '';
+      const primaryFiles = [
+        ['REPORT-zh.html', '開啟交付導覽（建議從這裡開始）'],
+        ['images-gallery.html', '圖片稽核'],
+        ['delivery-summary.html', '一頁摘要'],
+        ['seo-briefs.html', 'SEO Brief'],
+        ['ai-hub.html', 'AI 交付'],
+        ['dashboard.html', '分析圖表'],
+      ];
+      primaryFiles.forEach(([file, label], idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = idx === 0 ? 'primary' : 'secondary';
+        btn.textContent = label;
+        const st = deliveryBtnState(file, job);
+        btn.disabled = st.disabled;
+        if (st.title) btn.title = st.title;
+        if (!st.disabled) btn.onclick = () => openReportFile(base, file);
+        box.appendChild(btn);
+      });
+    }
+
+    function attachReportPaths(job) {
+      const hasDir = !!(job.report_dir_abs || (typeof job.report_dir === 'string' && job.report_dir));
+      if (!hasDir) {
+        ssToast('找不到報告目錄，請確認 dev server 已啟動且爬取已完成', 'warn');
+        return;
+      }
+      currentTenantId = job.tenant_id || document.getElementById('tenant_id').value.trim() || 'default';
+      if (job.job_id) persistLastDelivery(job.job_id, currentTenantId, 3);
+      const base = reportBase(job);
+      lastDeliveryJob = job;
+      showDeliveryButtons(base, job);
+      renderPrimaryCtas(base, job);
+      renderDeliveryNextSteps(job);
+      loadDeliveryChecklist(job);
+      const zipBtn = document.getElementById('btn-download-zip');
+      zipBtn.classList.remove('hidden');
+      zipBtn.onclick = () => { window.location.href = '/api/job/' + job.job_id + '/package.zip'; };
+      const imagesZipBtn = document.getElementById('btn-download-images-zip');
+      const galleryBtn = document.getElementById('btn-open-images-gallery');
+      if (galleryBtn) {
+        galleryBtn.classList.remove('hidden');
+        galleryBtn.onclick = () => openReportFile(base, 'images-gallery.html');
+      }
+      const clientHtmlBtn = document.getElementById('btn-download-client-html');
+      if (clientHtmlBtn) {
+        clientHtmlBtn.classList.remove('hidden');
+        clientHtmlBtn.onclick = () => {
+          window.location.href = '/api/job/' + job.job_id + '/client-report.html';
+        };
+      }
+      const shareBtn = document.getElementById('btn-share-portal');
+      shareBtn.classList.remove('hidden');
+      shareBtn.onclick = async () => {
+        if (!planHasFeature('portal_share')) {
+          ssToast('客戶分享需 Free 或以上方案', 'warn');
+          return;
+        }
+        try {
+          const res = await fetch('/api/job/' + job.job_id + '/share', {
+            method: 'POST',
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({
+              tenant_id: currentTenantId,
+              label: job.client_label,
+              ttl_days: 30,
+            }),
+          });
+          const d = await res.json();
+          if (!res.ok || d.error) throw new Error(d.error || '建立分享失敗');
+          const url = d.share_url || (location.origin + d.share_path);
+          try {
+            await navigator.clipboard.writeText(url);
+            ssToast('已複製客戶分享連結（30 天有效）', 'success');
+            log('已複製客戶分享連結：' + url);
+          } catch (_) {
+            prompt('客戶分享連結（30 天）：', url);
+          }
+        } catch (e) {
+          ssToast(e.message, 'error');
+        }
+      };
+      const abs = job.report_dir_abs || job.report_dir;
+      document.getElementById('report-path-row').classList.remove('hidden');
+      document.getElementById('report-path-abs').textContent = abs;
+      document.getElementById('btn-copy-path').onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(abs);
+          log('已複製報告路徑');
+        } catch (_) {
+          prompt('複製路徑：', abs);
+        }
+      };
+      log('報告目錄（網頁）：' + base);
+      log('本機路徑：' + abs);
+      const aiBtn = document.getElementById('btn-ai-polish');
+      if (aiBtn && job.job_id) {
+        aiBtn.dataset.jobId = job.job_id;
+        aiBtn.disabled = !planHasFeature('ai_polish') || (job.ai || {}).status === 'running';
+      }
+      updateAiPlanGate();
+    }
+
+    async function validateStartUrl() {
+      const el = document.getElementById('url-status');
+      const raw = document.getElementById('url').value.trim();
+      if (!raw) { el.textContent = ''; return; }
+      try { new URL(raw); } catch (_) {
+        el.textContent = 'URL 格式無效';
+        el.style.color = 'var(--color-danger, #f87171)';
+        return;
+      }
+      el.textContent = '檢查連線中…';
+      el.style.color = 'var(--color-text-muted)';
+      try {
+        const res = await fetch('/api/validate-url?url=' + encodeURIComponent(raw));
+        const data = await res.json();
+        if (data.ok) {
+          el.textContent = '可連線 · HTTP ' + (data.status || '—') +
+            (data.final_url && data.final_url !== raw ? ' → ' + data.final_url : '');
+          el.style.color = 'var(--color-accent)';
+        } else {
+          el.textContent = data.error || '無法連線';
+          el.style.color = 'var(--color-danger, #f87171)';
+        }
+      } catch (_) {
+        el.textContent = '無法驗證（請確認 server 運行中）';
+      }
+    }
+
+    function setAiProgress(active) {
+      const bar = document.getElementById('ai-polish-progress');
+      if (bar) bar.classList.toggle('hidden', !active);
+    }
+
+    function updateAiFromJob(job) {
+      const ai = job.ai;
+      if (!ai) return;
+      const statusEl = document.getElementById('ai-polish-status');
+      const btn = document.getElementById('btn-ai-polish');
+      statusEl.classList.remove('hidden');
+      if (ai.status === 'running') {
+        btn.disabled = true;
+        setAiProgress(true);
+        const prov = ai.provider_id ? providerById(ai.provider_id) : providerById(document.getElementById('ai_provider').value);
+        const label = (prov && prov.name) || 'AI';
+        const m = ai.model || getSelectedAiModel();
+        statusEl.textContent = label + ' · ' + (m || '…') + ' 背景執行中（Title/Meta · FAQ · llms.txt）…';
+        return;
+      }
+      setAiProgress(false);
+      btn.disabled = false;
+      if (ai.status === 'done' || ai.status === 'partial') {
+        const provLabel = ai.provider_name || (providerById(ai.provider_id) || {}).name || '';
+        const head = provLabel ? (provLabel + ' · ' + (ai.model || '') + ' — ') : '';
+        const failed = ai.status === 'error' || ((ai.errors || []).length && !aiHasCoreDeliverables(ai));
+        const partial = ai.status === 'partial' || ((ai.errors || []).length > 0 && !failed);
+        if (failed) {
+          statusEl.textContent = head + '失敗：' + (ai.errors || [ai.error || '請檢查 API 金鑰與平台是否一致']).join('; ');
+          btn.disabled = false;
+          if (aiPollTimer) { clearInterval(aiPollTimer); aiPollTimer = null; }
+          loadJobHistory();
+          return;
+        }
+        statusEl.textContent = head + (partial ? '部分完成' : '完成') + '：' + (ai.written || []).slice(0, 6).join(' · ');
+        if (partial) log('AI 警告：' + (ai.errors || []).join('; '));
+        log('AI 產物：' + (ai.written || []).join(', '));
+        if (!aiOpenDone && currentJobId && aiHasCoreDeliverables(ai)) {
+          aiOpenDone = true;
+          const tenant = document.getElementById('tenant_id').value.trim() || 'default';
+          window.open('/reports/' + tenant + '/' + currentJobId + '/ai-hub.html', '_blank');
+        }
+        if (aiPollTimer) { clearInterval(aiPollTimer); aiPollTimer = null; }
+        if (lastDeliveryJob) {
+          attachReportPaths({ ...lastDeliveryJob, ai: ai });
+        }
+        loadJobHistory();
+      } else if (ai.status === 'error') {
+        statusEl.textContent = 'AI 失敗：' + (ai.error || (ai.errors || []).join('; '));
+        if (aiPollTimer) { clearInterval(aiPollTimer); aiPollTimer = null; }
+      }
+    }
+
+    function aiNeedsApiKey() {
+      const p = providerById(document.getElementById('ai_provider').value);
+      return !p || p.id !== 'ollama';
+    }
+
+    function buildAiPolishPayload() {
+      const pid = document.getElementById('ai_provider').value;
+      const p = providerById(pid) || {};
+      return {
+        tenant_id: document.getElementById('tenant_id').value.trim() || 'default',
+        ai_provider: pid,
+        ai_model: getSelectedAiModel() || undefined,
+        ai_api_key: document.getElementById('ai_api_key').value.trim() || undefined,
+        ai_base_url: p.custom_base_url
+          ? (document.getElementById('ai_base_url').value.trim() || undefined)
+          : undefined,
+      };
+    }
+
+    function maybeAutoAiPolish(job) {
+      const cb = document.getElementById('auto_ai_polish');
+      if (!cb || !cb.checked || !job.job_id) return;
+      if (!planHasFeature('ai_polish')) return;
+      const key = document.getElementById('ai_api_key').value.trim();
+      if (aiNeedsApiKey() && !key && !window.__aiConfigured) return;
+      if ((job.ai || {}).status === 'running') return;
+      if ((job.ai || {}).status === 'done' && aiHasCoreDeliverables(job.ai)) return;
+      runAiPolish(true);
+    }
+
+    async function runAiPolish(isAuto) {
+      const btn = document.getElementById('btn-ai-polish');
+      const statusEl = document.getElementById('ai-polish-status');
+      const jobId = btn.dataset.jobId || currentJobId;
+      if (!jobId) {
+        ssToast('請先完成爬取', 'warn');
+        return;
+      }
+      const key = document.getElementById('ai_api_key').value.trim();
+      const provider = providerById(document.getElementById('ai_provider').value);
+      if (aiNeedsApiKey() && !key && !window.__aiConfigured) {
+        if (!isAuto) {
+          ssToast('請在頂欄「AI 文案」選擇平台並填入 API 金鑰（或由伺服器管理員預先設定）', 'warn');
+        }
+        return;
+      }
+      saveFormToStorage();
+      btn.disabled = true;
+      statusEl.classList.remove('hidden');
+      setAiProgress(true);
+      statusEl.textContent = 'AI 文案產生中（' + (provider?.name || 'AI') + '）…';
+      log(isAuto ? '自動產生 AI 文案…' : '開始產生 AI 文案…');
+      try {
+        const res = await fetch('/api/job/' + jobId + '/ai-polish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(buildAiPolishPayload()),
+        });
+        const data = await res.json();
+        if (res.status === 409 && data.status === 'ai_running') {
+          statusEl.textContent = 'AI 已在背景執行…';
+          ensureAiPoll();
+          return;
+        } else if (res.status === 202 || data.status === 'ai_running') {
+          statusEl.textContent = 'AI 背景執行中…';
+          ensureAiPoll();
+        } else if (!res.ok || data.error) {
+          throw new Error(data.error || (data.errors || []).join('; ') || 'AI 失敗');
+        } else {
+          statusEl.textContent = '完成：' + (data.written || []).join(' · ');
+          aiOpenDone = true;
+          const base = '/reports/' + (document.getElementById('tenant_id').value.trim() || 'default') + '/' + jobId + '/';
+          window.open(base + 'ai-hub.html', '_blank');
+          setAiProgress(false);
+          btn.disabled = false;
+        }
+      } catch (e) {
+        statusEl.textContent = '失敗：' + e.message;
+        log('AI 錯誤：' + e.message);
+        setAiProgress(false);
+        btn.disabled = false;
+      }
+    }
+
+    async function loadDeliveryChecklist(job) {
+      const box = document.getElementById('delivery-checklist');
+      const summary = document.getElementById('delivery-checklist-summary');
+      const coreUl = document.getElementById('delivery-checklist-core');
+      if (!box || !job.job_id) return;
+      try {
+        const res = await fetch('/api/job/' + job.job_id + '/delivery-checklist');
+        const d = await res.json();
+        if (!res.ok || d.error) return;
+        box.classList.remove('hidden');
+        let sumText = '核心交付 ' + d.core_present + '/' + d.core_total + ' · 全部檔案 ' + d.present_count + '/' + d.catalog_count;
+        const img = d.images || {};
+        if (img.downloaded_count > 0) {
+          sumText += ' · 已下載圖片 ' + img.downloaded_count + ' 張（可打包 ZIP）';
+        }
+        summary.textContent = sumText;
+        const imagesZipBtn = document.getElementById('btn-download-images-zip');
+        if (imagesZipBtn) {
+          if (img.zip_available) {
+            imagesZipBtn.classList.remove('hidden');
+            imagesZipBtn.disabled = false;
+            imagesZipBtn.title = '含 images/ 與 images-gallery.html';
+            imagesZipBtn.onclick = () => { window.location.href = '/api/job/' + job.job_id + '/images.zip'; };
+          } else {
+            imagesZipBtn.classList.add('hidden');
+          }
+        }
+        coreUl.innerHTML = '';
+        (d.items || []).filter(i => i.core).forEach(i => {
+          const li = document.createElement('li');
+          li.className = i.present ? 'ok' : 'missing';
+          li.textContent = (i.present ? '✓ ' : '○ ') + i.title + ' (' + i.file + ')';
+          coreUl.appendChild(li);
+        });
+      } catch (_) {}
+    }
+
+    document.getElementById('btn-schedule-wizard').addEventListener('click', async () => {
+      if (!planHasFeature('schedule')) {
+        ssToast('排程爬取需 Pro 或以上方案', 'warn');
+        return;
+      }
+      const tid = document.getElementById('tenant_id').value.trim() || 'default';
+      const cfg = document.getElementById('config_path').value.trim() || document.getElementById('preset').value || '';
+      const qs = new URLSearchParams({
+        tenant_id: tid,
+        plan_id: document.getElementById('plan_id').value,
+        config: cfg,
+        root: document.getElementById('root').value.trim() || '.',
+      });
+      try {
+        const res = await fetch('/api/schedule/wizard?' + qs.toString(), { headers: authHeaders() });
+        const d = await res.json();
+        if (!res.ok || d.error) throw new Error(d.error || '無法產生指令');
+        const pre = document.getElementById('schedule-cmd');
+        pre.textContent = d.cron_weekly + '\n\n# CLI:\n' + d.command;
+        pre.classList.remove('hidden');
+        try {
+          await navigator.clipboard.writeText(d.cron_weekly);
+          ssToast('已複製每週 cron 指令', 'success');
+        } catch (_) {
+          ssToast('指令已產生（請手動複製）', 'info');
+        }
+      } catch (e) {
+        ssToast(e.message, 'error');
+      }
+    });
+
+    function showDeliveryButtons(base, job) {
+      const container = document.getElementById('delivery-buttons');
+      container.innerHTML = '';
+      DELIVERY_GROUPS.forEach(([groupTitle, files]) => {
+        const section = document.createElement('div');
+        section.className = 'delivery-section';
+        section.innerHTML = '<h3>' + groupTitle + '</h3>';
+        const grid = document.createElement('div');
+        grid.className = 'delivery-grid';
+        files.forEach(([file, label]) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'secondary';
+          btn.textContent = label;
+          const st = deliveryBtnState(file, job);
+          btn.disabled = st.disabled;
+          if (st.title) btn.title = st.title;
+          if (!st.disabled) btn.onclick = () => openReportFile(base, file);
+          grid.appendChild(btn);
+        });
+        section.appendChild(grid);
+        container.appendChild(section);
+      });
+      const ff = document.getElementById('delivery-file-filter');
+      if (ff) ff.value = '';
     }
 
     async function pollJob(jobId) {
       const res = await fetch('/api/job/' + jobId);
       const job = await res.json();
       const p = job.progress || {};
-      const total = Math.max(p.total || 1, 1);
-      const pct = Math.min(100, Math.round((p.done / total) * 100));
+      const total = Math.max(Number(p.total) || 1, 1);
+      const pct = Math.min(100, Math.max(0, Math.round(((p.done || 0) / total) * 100)));
       document.getElementById('progress-bar').style.width = pct + '%';
+      const pctEl = document.getElementById('progress-pct');
+      if (pctEl) pctEl.textContent = pct + '%';
+
+      const statusLabel = {
+        running: '爬取中',
+        exporting: '匯出報告（快速版已完成，完整版背景處理中）',
+        done: '完成',
+        error: '錯誤',
+      }[job.status] || job.status;
       document.getElementById('progress-text').textContent =
-        (job.status === 'running' ? '爬取中' : job.status) + ' — ' + (p.current || '') + ` (${p.done || 0}/${total})`;
+        statusLabel + ' — ' + (p.current || '') + ` (${p.done || 0}/${total})`;
+      updateLiveDash(job);
+      updateSidebarLive(job);
+      updateAiFromJob(job);
+
+      if (job.status === 'exporting' && job.summary && !fastResultsShown) {
+        fastResultsShown = true;
+        setExportPhase('fast');
+        showResults(job, { partial: true });
+        setStep(3);
+        document.getElementById('export-hint').textContent =
+          '快速匯出已完成，可先開啟交付導覽；其餘報表背景匯出中…';
+        attachReportPaths(job);
+        log('快速匯出完成，可預覽交付導覽');
+        maybeAutoOpenReport(job);
+      }
 
       if (job.status === 'done') {
         clearInterval(pollTimer);
         document.getElementById('btn-start').disabled = false;
         showResults(job);
-        if (job.report_dir) {
-          const btn = document.getElementById('btn-report');
-          btn.classList.remove('hidden');
-          btn.onclick = () => window.open('/reports/' + jobId + '/index.html', '_blank');
-        }
+        setStep(3);
+        document.getElementById('export-hint').textContent =
+          '建議從「交付導覽」開始，未連結 Search Console 亦可交付客戶。';
+        attachReportPaths(job);
+        log('可下載交付 ZIP');
+        loadJobHistory();
         log('完成。');
+        maybeCelebrate(job);
+        maybeAutoAiPolish(job);
+        // 不論前端是否立即觸發，爬取完成後都短暫輪詢 AI 狀態（支援後端自動 AI）
+        ensureAiPoll();
         return;
       }
       if (job.status === 'error') {
         clearInterval(pollTimer);
         document.getElementById('btn-start').disabled = false;
-        log('錯誤: ' + (job.error || 'unknown'));
-        return;
+        if (window.SiteSpiderShell) SiteSpiderShell.setBrandActive(false);
+        log('爬取失敗：' + formatJobError(job.error));
       }
     }
 
-    function showResults(job) {
+    function showResults(job, opts) {
+      const partial = opts && opts.partial;
       const s = job.summary || {};
-      document.getElementById('result-card').classList.remove('hidden');
+      setStep(3);
+      const gscNote = (s.gsc_inspected || 0) > 0
+        ? ` · Search Console 已檢查 ${s.gsc_inspected} 個網址`
+        : (partial ? '' : ' · 未使用 Search Console（屬正常情況）');
       document.getElementById('result-summary').innerHTML =
-        `<p>已爬取 <strong>${s.pages || 0}</strong> 頁 · robots 封鎖 <strong>${s.blocked || 0}</strong> · 耗時 <strong>${(s.duration || 0).toFixed(2)}</strong>s</p>`;
+        renderHealthHero(s) + (gscNote ? `<p class="status">${gscNote.replace(/^ · /, '')}</p>` : '');
       const issues = s.issues || {};
       const ul = document.getElementById('issue-list');
       ul.innerHTML = '';
-      const labels = {
-        missing_meta_description: '缺少 meta description',
-        duplicate_title: '重複 title',
-        blocked_by_robots: 'robots.txt 封鎖',
-        orphan_page: '孤立頁',
-        lighthouse_seo_low: 'Lighthouse SEO 偏低',
-        lighthouse_perf_low: 'Lighthouse 效能偏低',
-      };
-      for (const [k, urls] of Object.entries(issues)) {
+      const labels = window.__issueLabels || {};
+      const sorted = Object.entries(issues).sort((a, b) => new Set(b[1]).size - new Set(a[1]).size);
+      for (const [k, urls] of sorted.slice(0, 15)) {
         const li = document.createElement('li');
         li.innerHTML = (labels[k] || k) + '<span class="badge">' + new Set(urls).size + '</span>';
         ul.appendChild(li);
       }
-      if (!Object.keys(issues).length) {
-        ul.innerHTML = '<li>未發現常見 SEO 問題</li>';
-      }
+      if (!sorted.length) ul.innerHTML = '<li>未發現常見 SEO 問題</li>';
+      updateSidebarLive(job);
     }
 
     document.getElementById('crawl-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (applySanitizedUrlField()) log('已自動修正起始 URL');
+      const urlIssue = crawlUrlIssue(document.getElementById('url').value);
+      if (urlIssue) {
+        log(urlIssue);
+        validateStartUrl();
+        return;
+      }
+
       document.getElementById('btn-start').disabled = true;
-      document.getElementById('progress-card').classList.remove('hidden');
-      document.getElementById('result-card').classList.add('hidden');
-      document.getElementById('btn-report').classList.add('hidden');
+      fastResultsShown = false;
+      autoOpenDone = false;
+      aiOpenDone = false;
+      if (aiPollTimer) { clearInterval(aiPollTimer); aiPollTimer = null; }
+      crawlTargetUrl = sanitizeCrawlUrl(document.getElementById('url').value);
+      document.getElementById('url').value = crawlTargetUrl;
+      crawlMaxPages = parseInt(document.getElementById('max_pages').value, 10) || 500;
+      resetLiveDash();
+      resetSidebarLive();
+      document.getElementById('live-url').textContent = crawlTargetUrl || '—';
+      document.getElementById('live-total').textContent = crawlMaxPages;
+      setStep(2);
+      document.getElementById('delivery-buttons').innerHTML = '';
+      document.getElementById('delivery-primary').innerHTML = '';
+      document.getElementById('report-path-row').classList.add('hidden');
+      document.getElementById('btn-download-zip').classList.add('hidden');
+      const clientHtmlBtnReset = document.getElementById('btn-download-client-html');
+      if (clientHtmlBtnReset) clientHtmlBtnReset.classList.add('hidden');
+      document.getElementById('btn-share-portal').classList.add('hidden');
+      document.getElementById('btn-ai-polish').disabled = true;
+      document.getElementById('ai-polish-status').classList.add('hidden');
       document.getElementById('log').textContent = '';
+      document.getElementById('progress-bar').style.width = '0%';
+
+      const excludeRaw = document.getElementById('exclude_paths').value.trim();
+      const exclude_paths = excludeRaw ? excludeRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+      const cfgPath = document.getElementById('config_path').value.trim();
+      const gscMax = parseInt(document.getElementById('gsc_inspect_max').value, 10) || 0;
 
       const payload = {
         mode: document.getElementById('mode').value,
         root: document.getElementById('root').value,
-        url: document.getElementById('url').value,
+        url: crawlTargetUrl,
+        config_path: cfgPath || undefined,
+        exclude_paths,
         max_depth: parseInt(document.getElementById('max_depth').value, 10),
         max_pages: parseInt(document.getElementById('max_pages').value, 10),
         workers: parseInt(document.getElementById('workers').value, 10),
@@ -225,21 +2372,100 @@
         check_external: document.getElementById('check_external').checked,
         lighthouse: document.getElementById('lighthouse').checked,
         lighthouse_max: parseInt(document.getElementById('lighthouse_max').value, 10),
+        require_json_ld: document.getElementById('require_json_ld').checked,
+        xlsx: document.getElementById('xlsx').checked,
+        client_report: document.getElementById('client_report').checked,
+        client_label: document.getElementById('client_label').value.trim() || undefined,
+        render_js: document.getElementById('render_js').checked,
+        download_images: document.getElementById('download_images').checked,
+        max_images_download: parseInt(document.getElementById('max_images_download').value, 10) || 300,
+        strip_query: document.getElementById('strip_query').checked,
+        defer_link_checks: document.getElementById('defer_link_checks').checked,
+        gsc_inspect_max: gscMax,
+        gsc_site_url: document.getElementById('gsc_site_url').value.trim() || undefined,
+        custom_preset_ids: [...document.querySelectorAll('#custom-presets input:checked')].map(el => el.value),
+        branding: ConsoleStore.loadBranding(),
+        auto_ai_polish: document.getElementById('auto_ai_polish').checked,
+        ai_provider: document.getElementById('ai_provider').value || undefined,
+        ai_model: getSelectedAiModel() || undefined,
+        ai_api_key: document.getElementById('ai_api_key').value.trim() || undefined,
+        ai_base_url: (function () {
+          const p = providerById(document.getElementById('ai_provider').value) || {};
+          return p.custom_base_url
+            ? (document.getElementById('ai_base_url').value.trim() || undefined)
+            : undefined;
+        })(),
       };
+      saveFormToStorage();
 
-      log('送出爬取任務…');
+      if (gscMax > 0) log('Search Console：最多檢查 ' + gscMax + ' 個網址');
+      else log('未啟用 Search Console（站內報告仍會完整產出）');
+
+      log('開始爬取…');
+      payload.tenant_id = document.getElementById('tenant_id').value.trim() || 'default';
+      payload.plan_id = document.getElementById('plan_id').value;
+      const slack = document.getElementById('slack_webhook').value.trim();
+      if (slack) payload.notify = { slack_webhook: slack };
       const res = await fetch('/api/crawl', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
       const data = await res.json();
+      if (!res.ok) {
+        abortCrawlStart('無法開始：' + formatJobError(data.error || ('HTTP ' + res.status)));
+        refreshUsage();
+        return;
+      }
       currentJobId = data.job_id;
-      log('Job ID: ' + currentJobId);
+      log('任務已建立（編號 ' + currentJobId + '）');
       pollTimer = setInterval(() => pollJob(currentJobId), 800);
     });
 
+    document.getElementById('tenant_id').addEventListener('change', () => {
+      saveFormToStorage();
+      refreshUsage();
+    });
+
+    document.getElementById('plan_id').addEventListener('change', () => {
+      saveFormToStorage();
+      updateAiPlanGate();
+      applyPlanPageCap();
+      refreshUsage();
+      if (lastDeliveryJob) attachReportPaths(lastDeliveryJob);
+    });
+
+    document.getElementById('btn-ai-polish').addEventListener('click', () => runAiPolish(false));
+    document.getElementById('ai_provider').addEventListener('change', () => onAiProviderChange());
+    document.getElementById('ai_model_filter').addEventListener('input', filterAiModels);
+    document.getElementById('ai_model').addEventListener('change', () => {
+      const custom = document.getElementById('ai_model_custom');
+      custom.classList.toggle('hidden', document.getElementById('ai_model').value !== '__custom__');
+      saveFormToStorage();
+    });
+    document.getElementById('ai_model_custom').addEventListener('change', saveFormToStorage);
+    document.getElementById('ai_api_key').addEventListener('change', saveFormToStorage);
+    document.getElementById('ai_base_url').addEventListener('change', saveFormToStorage);
+    document.getElementById('auto_ai_polish').addEventListener('change', saveFormToStorage);
+    document.getElementById('url').addEventListener('blur', () => {
+      if (applySanitizedUrlField()) validateStartUrl();
+      else validateStartUrl();
+    });
+
+    window.addEventListener('pageshow', (ev) => {
+      loadFormFromStorage();
+      refreshUsage();
+      updateAiPlanGate();
+      const qs = new URLSearchParams(location.search);
+      if (ev.persisted || qs.has('job')) {
+        loadJobHistory().then(() => restoreDeliverySession());
+      }
+    });
+
+    initDismissibleCallouts();
+    updateConsoleChrome(1);
     loadInfo();
+    setupKeyboardShortcuts();
   </script>
 </body>
 </html>

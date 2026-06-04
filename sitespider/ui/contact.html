@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>聯絡我們 — SiteSpider</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="/ui/tokens.css">
+  <link rel="stylesheet" href="/ui/shell.css">
+  <link rel="stylesheet" href="/ui/theme.css">
+  <link rel="stylesheet" href="/ui/comfort-display.css">
+  <link rel="stylesheet" href="/ui/polish.css">
+  <link rel="stylesheet" href="/ui/ux-friendly.css">
+  <link rel="stylesheet" href="/ui/site-reset.css">
+  <link rel="stylesheet" href="/ui/nav-back.css">
+  <link rel="stylesheet" href="/ui/settings-page.css">
+  <link rel="stylesheet" href="/ui/content-page.css">
+</head>
+<body class="app-console">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon" data-brand></div>
+      <div>
+        <p class="brand-title">SiteSpider</p>
+        <p class="brand-sub">SEO · GEO 顧問交付</p>
+      </div>
+    </div>
+    <nav class="topnav" data-ss-nav>
+      <button type="button" class="theme-toggle" title="切換主題">◑</button>
+    </nav>
+  </header>
+
+  <div class="page-wrap content-page settings-page" id="main-content" tabindex="-1">
+    <header class="page-hero">
+      <h1 class="page-title">聯絡我們</h1>
+      <p class="page-intro">
+        業務合作、方案諮詢或技術支援，歡迎來信。我們一般於 <strong>1–2 個工作天</strong> 內回覆。
+      </p>
+    </header>
+
+    <div class="content-grid-2">
+      <div class="card content-card">
+        <h3>電子郵件</h3>
+        <p class="contact-email" id="contact-email">載入中…</p>
+        <div class="btn-row btn-row--tight">
+          <a id="btn-mailto" href="#" class="btn-cta primary">撰寫郵件</a>
+        </div>
+        <p class="status" id="company-line" style="margin-top:0.75rem"></p>
+      </div>
+
+      <div class="card content-card">
+        <h3>我們能協助</h3>
+        <ul class="contact-list">
+          <li>方案升級、Agency 報告品牌與多租戶 API</li>
+          <li>AI 文案加購、Stripe 帳單與訂閱管理</li>
+          <li>自架部署、整合與客製交付格式</li>
+          <li>範例報告解讀與產品建議</li>
+        </ul>
+      </div>
+
+      <div class="card content-card">
+        <h3>技術支援請提供</h3>
+        <ul class="contact-list">
+          <li>帳號 ID 與 job 編號</li>
+          <li>錯誤訊息或截圖</li>
+          <li>可先至 <a href="/workspace">帳號與方案</a> 確認用量與 API 金鑰</li>
+        </ul>
+      </div>
+
+      <div class="card content-card">
+        <h3>相關連結</h3>
+        <p class="inline-links">
+          <a href="/about">關於我們</a> ·
+          <a href="/pricing">方案價格</a> ·
+          <a href="/demo">範例報告</a> ·
+          <a href="/">爬取中心</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/ui/app-shell.js"></script>
+  <script src="/ui/nav-back.js"></script>
+  <script src="/ui/topnav.js"></script>
+  <script>
+    SiteSpiderNav.render('contact');
+
+    (async function () {
+      var email = 'hello@sitespider.app';
+      var company = '';
+      try {
+        var res = await fetch('/api/site');
+        var data = await res.json();
+        if (data.contact_email) email = data.contact_email;
+        if (data.company_name) company = data.company_name;
+      } catch (_) {}
+
+      document.getElementById('contact-email').textContent = email;
+      document.getElementById('btn-mailto').href =
+        'mailto:' + encodeURIComponent(email) + '?subject=' + encodeURIComponent('SiteSpider 諮詢');
+      var line = document.getElementById('company-line');
+      if (company) {
+        line.textContent = '營運主體：' + company;
+      } else {
+        line.classList.add('hidden');
+      }
+    })();
+  </script>
+</body>
+</html>

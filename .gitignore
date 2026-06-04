@@ -9,3 +9,10 @@ reports/
 reports-*/
 node_modules/
 .DS_Store
+.secrets/
+client_secret*.json
+*-oauth-token.json
+gsc-oauth-token.json
+scripts/gsc-env.sh
+.sitespider/
+.uploaded-config.json

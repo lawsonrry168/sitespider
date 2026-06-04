@@ -1,0 +1,146 @@
+/* Washi Indigo — SiteSpider design tokens
+   日系：藍染靛、若竹綠、和紙暖白、留白（間）
+   歐美：Outfit 標題層級、實心表面、單一清晰 accent */
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap");
+
+:root {
+  /* Typography */
+  --font-display: "Outfit", "Noto Sans TC", system-ui, sans-serif;
+  --font-sans: "Noto Sans TC", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* 藍染墨 — 風格重設：略提亮底、單一 accent、少雙色漸層 */
+  --color-bg: #0c0e14;
+  --color-bg-subtle: #11151d;
+  --color-bg-elevated: #151b26;
+  --color-surface: #1a212e;
+  --color-surface-hover: #212a3a;
+  --color-surface-solid: #1a212e;
+  --color-border: #2a3344;
+  --color-border-subtle: #38465c;
+  --color-border-focus: #5fbf96;
+  --color-border-glow: rgba(95, 191, 150, 0.22);
+
+  --color-text: #ebe9e3;
+  --color-text-secondary: #b4bcc9;
+  --color-text-muted: #8690a3;
+  --color-text-disabled: #5a6375;
+
+  /* 若竹 — 主色實心優先（漸層僅供品牌區塊選用） */
+  --color-accent: #62b892;
+  --color-accent-hover: #78c9a4;
+  --color-accent-dim: #1a4234;
+  --color-accent-2: #7a9fd4;
+  --color-accent-fg: #0a1610;
+  --color-accent-muted: rgba(98, 184, 146, 0.11);
+  --color-accent-glow: rgba(98, 184, 146, 0.16);
+  --gradient-accent: linear-gradient(135deg, #62b892 0%, #4fa87a 100%);
+  --gradient-brand: linear-gradient(135deg, #78c9a4 0%, #62b892 100%);
+  --gradient-surface: linear-gradient(180deg, #1e2634 0%, #1a212e 100%);
+
+  --color-info: #8baee8;
+  --color-warn: #e8c468;
+  --color-warn-muted: rgba(232, 196, 104, 0.12);
+  --color-danger: #e88a8a;
+  --color-danger-muted: rgba(232, 138, 138, 0.12);
+
+  /* Spacing & shape — slightly softer corners (日系圓潤) */
+  --radius-xs: 6px;
+  --radius-sm: 9px;
+  --radius-md: 13px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --radius-full: 9999px;
+
+  --shadow-xs: 0 1px 2px rgba(8, 12, 22, 0.5);
+  --shadow-sm: 0 2px 12px rgba(8, 12, 28, 0.42);
+  --shadow-md: 0 8px 28px rgba(8, 12, 32, 0.46);
+  --shadow-lg: 0 16px 48px rgba(8, 12, 36, 0.52);
+  --shadow-glow: 0 0 0 1px rgba(110, 201, 160, 0.14), 0 8px 32px rgba(91, 127, 196, 0.08);
+  --shadow-card: var(--shadow-sm);
+
+  --topbar-h: 3.75rem;
+  --sidebar-w: 300px;
+  --content-max: 1280px;
+  --content-readable: 48rem;
+  --transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  --z-topbar: 100;
+  --z-toast: 200;
+  --z-modal: 300;
+
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.1875rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --line-body: 1.7;
+  --line-snug: 1.45;
+
+  --bg: var(--color-bg);
+  --card: var(--color-surface);
+  --border: var(--color-border);
+  --text: var(--color-text);
+  --muted: var(--color-text-muted);
+  --accent: var(--color-accent);
+  --warn: var(--color-warn);
+  --danger: var(--color-danger);
+  --info: var(--color-bg-elevated);
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media (min-width: 1440px) {
+  html { font-size: 17px; }
+  :root {
+    --sidebar-w: 312px;
+    --content-max: 1320px;
+    --content-readable: 50rem;
+  }
+}
+
+@media (min-width: 1920px) {
+  html { font-size: 18px; }
+  :root {
+    --sidebar-w: 328px;
+    --content-max: 1400px;
+    --content-readable: 52rem;
+  }
+}
+
+/* 和紙 — warm paper light mode */
+[data-theme="light"] {
+  --color-bg: #f5f3ef;
+  --color-bg-subtle: #ece9e2;
+  --color-bg-elevated: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f0ede6;
+  --color-surface-solid: #ffffff;
+  --color-border: #d8d2c6;
+  --color-border-subtle: #c4bcb0;
+  --color-border-focus: #2a7d5a;
+  --color-border-glow: rgba(42, 125, 90, 0.28);
+  --color-text: #141820;
+  --color-text-secondary: #2c3444;
+  --color-text-muted: #6a7384;
+  --color-text-disabled: #9aa3b0;
+  --color-accent: #2a7d5a;
+  --color-accent-hover: #236b4d;
+  --color-accent-dim: #d4ebe0;
+  --color-accent-2: #3d6db5;
+  --color-accent-fg: #ffffff;
+  --color-accent-muted: rgba(42, 125, 90, 0.1);
+  --color-accent-glow: rgba(42, 125, 90, 0.14);
+  --gradient-accent: linear-gradient(135deg, #2a7d5a 0%, #3d9a72 100%);
+  --gradient-brand: linear-gradient(135deg, #3d9a72 0%, #2a7d5a 50%, #3d6db5 100%);
+  --gradient-surface: linear-gradient(180deg, #ffffff 0%, #f5f3ef 100%);
+  --shadow-card: 0 1px 3px rgba(20, 24, 32, 0.06), 0 1px 2px rgba(20, 24, 32, 0.04);
+  --shadow-glow: 0 0 0 1px rgba(42, 125, 90, 0.12), 0 4px 18px rgba(61, 109, 181, 0.06);
+}

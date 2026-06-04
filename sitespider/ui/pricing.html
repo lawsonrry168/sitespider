@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SiteSpider 方案</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="/ui/tokens.css">
+  <link rel="stylesheet" href="/ui/shell.css">
+  <link rel="stylesheet" href="/ui/theme.css">
+  <link rel="stylesheet" href="/ui/comfort-display.css">
+  <link rel="stylesheet" href="/ui/polish.css">
+  <link rel="stylesheet" href="/ui/ux-friendly.css">
+  <link rel="stylesheet" href="/ui/site-reset.css">
+  <link rel="stylesheet" href="/ui/nav-back.css">
+  <link rel="stylesheet" href="/ui/content-page.css">
+  <style>
+    .plan-card.free-tier { border-color: var(--color-border); }
+    .plan-card .plan-tagline { font-size: 0.8rem; color: var(--color-text-muted); margin: 0.25rem 0 0.75rem; }
+    .plan-ai { font-size: 0.78rem; color: var(--color-accent); margin-top: 0.5rem; }
+  </style>
+</head>
+<body class="app-console">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon" data-brand></div>
+      <div>
+        <p class="brand-title">SiteSpider</p>
+        <p class="brand-sub">SEO · GEO 顧問交付</p>
+      </div>
+    </div>
+    <nav class="topnav" data-ss-nav>
+      <button type="button" class="theme-toggle" title="切換主題">◑</button>
+    </nav>
+  </header>
+
+  <div class="page-wrap content-page" id="main-content" tabindex="-1">
+    <header class="page-hero">
+      <h1 class="page-title">方案價格</h1>
+      <p class="page-intro">
+        站內爬取、技術稽核、規則型 SEO brief 與多平台 AI 文案，專為顧問與代理商設計。
+        客戶透過分享連結閱讀報告，無需安裝任何軟體。
+      </p>
+    </header>
+
+    <div class="pricing-layout">
+      <div class="card">
+        <h2>新訂閱 / 免費試用</h2>
+        <label for="tenant_id">帳號 ID（英數，作為您的識別碼）</label>
+        <input type="text" id="tenant_id" placeholder="例：acme-hk">
+        <label for="email">Email（付費方案收據）</label>
+        <input type="email" id="email" placeholder="you@company.com">
+        <p class="status">免費方案無需付款，填寫帳號 ID 後點「免費開始」即可使用爬取中心。</p>
+      </div>
+
+      <div class="card">
+        <h2>已有訂閱？</h2>
+        <label for="portal_tenant">帳號 ID</label>
+        <input type="text" id="portal_tenant" placeholder="與訂閱時相同">
+        <label for="portal_key">API 金鑰</label>
+        <input type="password" id="portal_key" placeholder="訂閱確認信中的金鑰">
+        <button type="button" class="full-width" id="btn-portal">管理訂閱與帳單</button>
+      </div>
+    </div>
+
+    <div class="pricing-grid" id="plans"></div>
+
+    <div class="card hidden" id="ai-bonus-card" style="margin-top:1.5rem;max-width:32rem">
+      <h2>AI 文案加購包</h2>
+      <p class="page-intro">Pro / Agency 方案可一次性加購額外 AI 文案次數（當月有效，與方案額度累加）。</p>
+      <p class="plan-ai" id="ai-bonus-pack-label"></p>
+      <button type="button" class="full-width" id="btn-ai-bonus">線上加購 AI 文案</button>
+    </div>
+
+    <p class="status" style="margin-top:2rem" id="stripe-hint"></p>
+  </div>
+
+  <script src="/ui/app-shell.js"></script>
+  <script src="/ui/console-store.js"></script>
+  <script src="/ui/nav-back.js"></script>
+  <script src="/ui/topnav.js"></script>
+  <script>
+    SiteSpiderNav.render('pricing');
+    function toast(msg, type) {
+      if (window.SiteSpiderShell && SiteSpiderShell.toast) SiteSpiderShell.toast(msg, type || 'info');
+      else alert(msg);
+    }
+
+    function startFree(tenant) {
+      ConsoleStore.savePartial({ tenant_id: tenant, plan_id: 'free' });
+      window.location.href = '/';
+    }
+
+    async function subscribe(planId) {
+      const tenant = document.getElementById('tenant_id').value.trim();
+      if (!tenant) { toast('請填寫帳號 ID', 'warn'); return; }
+      if (planId === 'free') {
+        startFree(tenant);
+        return;
+      }
+      const res = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan_id: planId,
+          tenant_id: tenant,
+          email: document.getElementById('email').value.trim(),
+        }),
+      });
+      const d = await res.json();
+      if (d.url) window.location.href = d.url;
+      else toast(d.error || '無法建立結帳（請確認 STRIPE_SECRET_KEY 與 Price ID）', 'error');
+    }
+
+    document.getElementById('btn-portal').onclick = async () => {
+      const tenant = document.getElementById('portal_tenant').value.trim();
+      const key = document.getElementById('portal_key').value.trim();
+      if (!tenant || !key) { toast('請填寫帳號 ID 與 API 金鑰', 'warn'); return; }
+      const res = await fetch('/api/billing/portal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + key,
+        },
+        body: JSON.stringify({ tenant_id: tenant }),
+      });
+      const d = await res.json();
+      if (d.url) window.location.href = d.url;
+      else toast(d.error || '無法開啟訂閱管理頁', 'error');
+    };
+
+    async function buyAiBonus() {
+      const tenant = document.getElementById('tenant_id').value.trim();
+      if (!tenant) { toast('請填寫帳號 ID', 'warn'); return; }
+      const res = await fetch('/api/billing/ai-bonus-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: tenant,
+          plan_id: 'pro',
+          email: document.getElementById('email').value.trim(),
+        }),
+      });
+      const d = await res.json();
+      if (d.url) window.location.href = d.url;
+      else toast(d.error || '無法建立加購結帳', 'error');
+    }
+
+    document.getElementById('btn-ai-bonus').onclick = buyAiBonus;
+
+    Promise.all([fetch('/api/plans'), fetch('/api/info')]).then(async ([rp, ri]) => {
+      const d = await rp.json();
+      const info = await ri.json();
+      if (info.stripe_ai_bonus_configured) {
+        document.getElementById('ai-bonus-card').classList.remove('hidden');
+        document.getElementById('ai-bonus-pack-label').textContent =
+          '每次加購 +' + (info.ai_bonus_pack_size || 10) + ' 次 AI 文案';
+      }
+      const grid = document.getElementById('plans');
+      (d.plans || []).forEach(p => {
+        const el = document.createElement('div');
+        const featured = p.id === 'pro';
+        const isFree = p.id === 'free';
+        el.className = 'card plan-card' + (featured ? ' featured' : '') + (isFree ? ' free-tier' : '');
+        const priceHtml = p.price_usd_month === 0
+          ? '<div class="plan-price">免費</div>'
+          : '<div class="plan-price">$' + p.price_usd_month + '<span style="font-size:0.9rem;font-weight:400">/月</span></div>';
+        const aiLine = p.max_ai_polish_per_month > 0
+          ? '<p class="plan-ai">含 AI 文案 ' + p.max_ai_polish_per_month + ' 次/月</p>'
+          : '<p class="plan-ai">不含 AI 文案</p>';
+        el.innerHTML =
+          '<h2 style="margin:0">' + p.name + '</h2>' +
+          '<p class="plan-tagline">' + (p.tagline || '') + '</p>' +
+          priceHtml +
+          '<p class="status">單次 ' + p.max_pages_per_crawl.toLocaleString() + ' 頁 · 每月 ' + p.max_crawls_per_month + ' 次爬取</p>' +
+          aiLine +
+          '<ul class="plan-features">' + (p.feature_labels || p.features || []).slice(0, 7).map(f => '<li>' + f + '</li>').join('') + '</ul>' +
+          '<button type="button" class="full-width"></button>';
+        const btn = el.querySelector('button');
+        if (isFree) btn.textContent = '免費開始';
+        else btn.textContent = '訂閱 ' + p.name;
+        btn.onclick = () => subscribe(p.id);
+        grid.appendChild(el);
+      });
+    }).catch(() => {});
+
+    try {
+      const w = ConsoleStore.loadWorkspace();
+      if (w.tenant_id) document.getElementById('tenant_id').value = w.tenant_id;
+    } catch (_) {}
+  </script>
+</body>
+</html>

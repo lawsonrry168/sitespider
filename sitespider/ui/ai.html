@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI 文案 — SiteSpider</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="/ui/tokens.css">
+  <link rel="stylesheet" href="/ui/shell.css">
+  <link rel="stylesheet" href="/ui/theme.css">
+  <link rel="stylesheet" href="/ui/comfort-display.css">
+  <link rel="stylesheet" href="/ui/polish.css">
+  <link rel="stylesheet" href="/ui/ux-friendly.css">
+  <link rel="stylesheet" href="/ui/site-reset.css">
+  <link rel="stylesheet" href="/ui/nav-back.css">
+  <link rel="stylesheet" href="/ui/settings-page.css">
+</head>
+<body class="app-console">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon" data-brand></div>
+      <div>
+        <p class="brand-title">SiteSpider</p>
+        <p class="brand-sub">SEO · GEO 顧問交付</p>
+      </div>
+    </div>
+    <nav class="topnav" data-ss-nav>
+      <button type="button" class="theme-toggle" title="切換主題">◑</button>
+    </nav>
+  </header>
+
+  <div class="page-wrap settings-page" id="main-content" tabindex="-1">
+    <header class="page-hero">
+      <h1 class="page-title">AI 文案</h1>
+      <p class="page-intro">選擇 AI 平台與模型，產生標題／描述、FAQ、llms.txt 等交付檔案。金鑰僅保存在本機瀏覽器。</p>
+    </header>
+
+    <div class="card form-narrow">
+      <label for="ai_provider">AI 平台</label>
+      <select id="ai_provider"></select>
+      <label for="ai_model">模型</label>
+      <input type="text" id="ai_model_filter" placeholder="篩選模型…" autocomplete="off">
+      <select id="ai_model"></select>
+      <input type="text" id="ai_model_custom" class="hidden" placeholder="自訂模型名稱">
+      <p class="status hidden" id="ai-model-remap-hint" role="status"></p>
+      <label for="ai_api_key">API 金鑰</label>
+      <input type="password" id="ai_api_key" placeholder="依平台填入" autocomplete="off">
+      <div id="ai_base_url_row" class="hidden">
+        <label for="ai_base_url">API 網址（進階）</label>
+        <input type="text" id="ai_base_url" placeholder="https://…/v1">
+      </div>
+      <label><input type="checkbox" id="auto_ai_polish"> 爬取完成後自動產生 AI 文案</label>
+      <p class="status" id="ai-key-hint">載入平台…</p>
+      <p class="status" id="ai-provider-docs"></p>
+      <div class="settings-actions">
+        <button type="button" id="btn-save">儲存 AI 設定</button>
+        <a href="/"><button type="button" class="secondary">返回爬取中心</button></a>
+      </div>
+      <p class="status" id="save-status"></p>
+      <p class="status">Pro / Agency 方案含 AI 額度 · <a href="/pricing">升級方案</a></p>
+    </div>
+  </div>
+
+  <script src="/ui/app-shell.js"></script>
+  <script src="/ui/console-store.js"></script>
+  <script src="/ui/ai-settings.js"></script>
+  <script src="/ui/nav-back.js"></script>
+  <script src="/ui/topnav.js"></script>
+  <script>
+    SiteSpiderNav.render('ai');
+
+    function authHeaders(extra) {
+      var h = Object.assign({}, extra || {});
+      var ws = ConsoleStore.loadWorkspace();
+      if (ws.api_key) h.Authorization = 'Bearer ' + ws.api_key;
+      return h;
+    }
+
+    function fillAi() {
+      var a = ConsoleStore.loadAi();
+      if (a.ai_provider) document.getElementById('ai_provider').value = a.ai_provider;
+      if (a.ai_api_key) document.getElementById('ai_api_key').value = a.ai_api_key;
+      if (a.ai_base_url) document.getElementById('ai_base_url').value = a.ai_base_url;
+      if (a.ai_model_custom) document.getElementById('ai_model_custom').value = a.ai_model_custom;
+      document.getElementById('auto_ai_polish').checked = a.auto_ai_polish;
+      SiteSpiderAi.onAiProviderChange(a.ai_model || a.ai_model_custom);
+    }
+
+    async function saveAi() {
+      var payload = {
+        ai_provider: document.getElementById('ai_provider').value,
+        ai_model: SiteSpiderAi.getSelectedAiModel(),
+        ai_model_custom: document.getElementById('ai_model_custom').value.trim(),
+        ai_api_key: document.getElementById('ai_api_key').value.trim(),
+        ai_base_url: document.getElementById('ai_base_url').value.trim(),
+        auto_ai_polish: document.getElementById('auto_ai_polish').checked,
+      };
+      ConsoleStore.savePartial(payload);
+      try {
+        var ws = ConsoleStore.loadWorkspace();
+        var res = await fetch('/api/ai/settings', {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({
+            tenant_id: ws.tenant_id || 'default',
+            settings: payload,
+          }),
+        });
+        var d = await res.json();
+        if (!res.ok || d.error) throw new Error(d.error || '儲存失敗');
+        document.getElementById('save-status').textContent = '已儲存（伺服器 + 本機）· 爬取中心將使用此設定';
+      } catch (e) {
+        document.getElementById('save-status').textContent = '僅本機儲存成功，伺服器同步失敗：' + e.message;
+      }
+    }
+
+    document.getElementById('btn-save').onclick = saveAi;
+    document.getElementById('ai_provider').addEventListener('change', function () { SiteSpiderAi.onAiProviderChange(); });
+    document.getElementById('ai_model_filter').addEventListener('input', SiteSpiderAi.filterAiModels);
+    document.getElementById('ai_model').addEventListener('change', function () {
+      document.getElementById('ai_model_custom').classList.toggle(
+        'hidden', document.getElementById('ai_model').value !== '__custom__'
+      );
+      SiteSpiderAi.updateModelRemapHint();
+    });
+    document.getElementById('ai_model_custom').addEventListener('input', SiteSpiderAi.updateModelRemapHint);
+
+    fetch('/api/info').then(function (r) { return r.json(); }).then(function (info) {
+      SiteSpiderAi.renderAiProviders(info.ai_providers || [], info.ai_provider_default || 'openai');
+      if (info.ai_configured) {
+        document.getElementById('ai-key-hint').textContent = '伺服器已設定 API 金鑰，可自動或手動產生 AI 文案。';
+      }
+      fillAi();
+      var ws = ConsoleStore.loadWorkspace();
+      fetch('/api/ai/settings?tenant_id=' + encodeURIComponent(ws.tenant_id || 'default'), {
+        headers: authHeaders(),
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        if (d && d.settings) {
+          ConsoleStore.savePartial(d.settings);
+          fillAi();
+        }
+      }).catch(function () {});
+    }).catch(function () {
+      document.getElementById('ai-key-hint').textContent = '無法載入 AI 平台列表';
+    });
+    window.addEventListener('pageshow', fillAi);
+  </script>
+</body>
+</html>

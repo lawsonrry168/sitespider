@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>多站儀表板 — SiteSpider</title>
+  <link rel="stylesheet" href="/ui/tokens.css">
+  <link rel="stylesheet" href="/ui/shell.css">
+  <link rel="stylesheet" href="/ui/theme.css">
+  <link rel="stylesheet" href="/ui/comfort-display.css">
+  <link rel="stylesheet" href="/ui/polish.css">
+  <link rel="stylesheet" href="/ui/ux-friendly.css">
+  <link rel="stylesheet" href="/ui/site-reset.css">
+  <link rel="stylesheet" href="/ui/nav-back.css">
+  <link rel="stylesheet" href="/ui/settings-page.css">
+</head>
+<body class="app-console">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon" data-brand></div>
+      <div>
+        <p class="brand-title">SiteSpider</p>
+        <p class="brand-sub">SEO · GEO 顧問交付</p>
+      </div>
+    </div>
+    <nav class="topnav" data-ss-nav>
+      <button type="button" class="theme-toggle" title="切換主題">◑</button>
+    </nav>
+  </header>
+
+  <div class="page-wrap settings-page" id="main-content" tabindex="-1">
+    <header class="page-hero">
+      <h1 class="page-title">多站儀表板</h1>
+      <p class="page-intro">彙整最近爬取的健康分與交付入口。Pro 起可檢視本站任務；Agency 可勾選「顯示全部租戶」。</p>
+    </header>
+    <div id="sites-banner" class="ss-banner hidden"></div>
+    <div class="card form-narrow" style="margin-bottom:1rem">
+      <label for="tenant_id">租戶 ID</label>
+      <input type="text" id="tenant_id" value="default">
+      <label for="api_key">API 金鑰（選填）</label>
+      <input type="password" id="api_key" autocomplete="off">
+      <div class="settings-actions">
+        <button type="button" id="btn-load">載入</button>
+        <label style="display:flex;align-items:center;gap:0.4rem;font-weight:400" id="all_tenants_row">
+          <input type="checkbox" id="all_tenants"> 顯示全部租戶（Agency）
+        </label>
+      </div>
+    </div>
+    <div class="sites-grid" id="sites-grid"></div>
+  </div>
+
+  <script src="/ui/app-shell.js"></script>
+  <script src="/ui/console-store.js"></script>
+  <script src="/ui/nav-back.js"></script>
+  <script src="/ui/topnav.js"></script>
+  <script>
+    SiteSpiderNav.render('sites');
+    function toast(msg, type) {
+      if (window.SiteSpiderShell && SiteSpiderShell.toast) SiteSpiderShell.toast(msg, type || 'info');
+      else alert(msg);
+    }
+    function authHeaders(extra) {
+      var h = Object.assign({}, extra || {});
+      var key = document.getElementById('api_key').value.trim();
+      if (key) h.Authorization = 'Bearer ' + key;
+      return h;
+    }
+    ConsoleStore.applyToDocument();
+    document.getElementById('tenant_id').value = ConsoleStore.loadWorkspace().tenant_id;
+    document.getElementById('api_key').value = ConsoleStore.loadWorkspace().api_key;
+
+    async function loadSites() {
+      var tid = document.getElementById('tenant_id').value.trim() || 'default';
+      var ws = ConsoleStore.loadWorkspace();
+      ConsoleStore.savePartial({ tenant_id: tid, api_key: document.getElementById('api_key').value.trim() });
+      var qs = new URLSearchParams({ tenant_id: tid, plan_id: ws.plan_id || 'pro' });
+      if (document.getElementById('all_tenants').checked) qs.set('all_tenants', '1');
+      var grid = document.getElementById('sites-grid');
+      try {
+        var res = await fetch('/api/sites-dashboard?' + qs.toString(), { headers: authHeaders() });
+        var d = await res.json();
+        if (!res.ok || d.error) {
+          SiteSpiderShell.showBanner('sites-banner', d.error || '載入失敗', res.status === 403 ? 'warn' : 'error');
+          grid.innerHTML = '';
+          return;
+        }
+        SiteSpiderShell.clearBanner('sites-banner');
+        grid.innerHTML = '';
+        (d.sites || []).forEach(function (s) {
+          var card = document.createElement('div');
+          card.className = 'site-card';
+          var score = s.health_score != null ? s.health_score : '—';
+          var grade = s.health_grade_label ? ' · ' + s.health_grade_label : '';
+          var reportTenant = s.tenant_id || 'default';
+          var reportJob = s.job_id;
+          var reportHref = reportTenant === 'legacy' || reportTenant === 'demo'
+            ? '/reports/' + reportJob + '/REPORT-zh.html'
+            : '/reports/' + reportTenant + '/' + reportJob + '/REPORT-zh.html';
+          card.innerHTML =
+            '<div class="score">' + score + '</div>' +
+            '<p style="margin:0.25rem 0 0.5rem;font-weight:600">' + (s.client_label || s.site_url || s.job_id) + '</p>' +
+            '<p class="status" style="margin:0">' + (s.tenant_id || '') + ' · ' + (s.pages || 0) + ' 頁' + grade + '</p>';
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'secondary';
+          btn.style.marginTop = '0.75rem';
+          btn.textContent = '開啟交付導覽';
+          btn.onclick = function () { window.open(reportHref, '_blank'); };
+          card.appendChild(btn);
+          grid.appendChild(card);
+        });
+        if (!(d.sites || []).length) {
+          grid.innerHTML = '<p class="empty-hint">尚無站點紀錄 — 請先完成爬取，或確認 reports/ 目錄下有 REPORT-zh.html。</p>';
+        }
+      } catch (e) {
+        SiteSpiderShell.showBanner('sites-banner', '無法連線控制台 — 請確認 sitespider --ui 已啟動', 'error');
+        grid.innerHTML = '';
+      }
+    }
+
+    function syncAllTenantsGate() {
+      fetch('/api/usage?tenant_id=' + encodeURIComponent(document.getElementById('tenant_id').value.trim() || 'default'), { headers: authHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var feats = d.features || [];
+          var ok = feats.indexOf('multi_tenant') >= 0;
+          document.getElementById('all_tenants').disabled = !ok;
+          document.getElementById('all_tenants_row').title = ok ? '' : '需 Agency 方案';
+          if (!ok) document.getElementById('all_tenants').checked = false;
+        })
+        .catch(function () {});
+    }
+    document.getElementById('btn-load').onclick = function () { syncAllTenantsGate(); loadSites(); };
+    document.getElementById('all_tenants').onchange = loadSites;
+    document.getElementById('tenant_id').addEventListener('change', syncAllTenantsGate);
+    syncAllTenantsGate();
+    loadSites();
+  </script>
+</body>
+</html>
