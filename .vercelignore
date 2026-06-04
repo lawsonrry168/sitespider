@@ -1,0 +1,9 @@
+reports/
+reports-*/
+.venv/
+.sitespider/
+.secrets/
+tests/
+packaging/
+*.pyc
+__pycache__/

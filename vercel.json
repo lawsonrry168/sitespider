@@ -1,0 +1,27 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "name": "sitespider",
+  "public": true,
+  "buildCommand": "pip install -e . && echo 'SiteSpider UI static export'",
+  "outputDirectory": "sitespider/ui",
+  "rewrites": [
+    { "source": "/guide", "destination": "/guide.html" },
+    { "source": "/guide/", "destination": "/guide.html" },
+    { "source": "/help", "destination": "/guide.html" },
+    { "source": "/pricing", "destination": "/pricing.html" },
+    { "source": "/demo", "destination": "/demo.html" },
+    { "source": "/about", "destination": "/about.html" },
+    { "source": "/contact", "destination": "/contact.html" },
+    { "source": "/ui/(.*)", "destination": "/$1" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    }
+  ]
+}
