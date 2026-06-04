@@ -1,9 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "name": "sitespider",
-  "public": true,
-  "buildCommand": "pip install -e . && echo 'SiteSpider UI static export'",
+  "framework": null,
+  "installCommand": "echo 'static UI only'",
+  "buildCommand": "echo 'static UI only'",
   "outputDirectory": "sitespider/ui",
   "rewrites": [
     { "source": "/guide", "destination": "/guide.html" },
@@ -13,7 +13,7 @@
     { "source": "/demo", "destination": "/demo.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/contact", "destination": "/contact.html" },
-    { "source": "/ui/(.*)", "destination": "/$1" }
+    { "source": "/", "destination": "/dashboard.html" }
   ],
   "headers": [
     {
