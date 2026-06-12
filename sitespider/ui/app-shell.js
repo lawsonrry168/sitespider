@@ -59,7 +59,16 @@
     });
   }
 
+  function isLocalConsoleHost() {
+    var h = (window.location.hostname || '').toLowerCase();
+    return h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h === '::1';
+  }
+
   window.SiteSpiderShell = {
+    isLocalConsoleHost: isLocalConsoleHost,
+    isStaticPreviewHost: function () {
+      return !isLocalConsoleHost();
+    },
     initTheme: function () {
       var saved = 'dark';
       try { saved = localStorage.getItem(STORAGE_THEME) || 'dark'; } catch (_) {}

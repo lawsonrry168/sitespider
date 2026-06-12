@@ -97,6 +97,18 @@
 
   <div class="layout layout-console-v3" id="main-content" data-console-step="1" tabindex="-1">
     <div class="main-col">
+      <div id="static-host-warn" class="callout callout-info hidden" role="status" aria-label="線上展示版說明">
+        <p class="callout-title"><strong>這是線上展示版介面</strong></p>
+        <p class="callout-detail">
+          實際爬取與產生報告需在您電腦<strong>本機啟動</strong> SiteSpider 控制台後操作（<code>http://127.0.0.1:8765/</code>）。
+          可先<a href="/demo">瀏覽範例報告</a>了解交付成果。
+        </p>
+        <ol class="callout-steps">
+          <li>在終端機進入專案目錄</li>
+          <li>執行：<code>bash scripts/dev-ui.sh</code></li>
+          <li>用瀏覽器開啟 <code>http://127.0.0.1:8765/</code> 再開始爬取</li>
+        </ol>
+      </div>
       <div id="guide-promo" class="callout callout-guide dismissible guide-promo-bar" data-dismiss-key="ss-guide-promo" role="region" aria-label="使用說明提示">
         <button type="button" class="callout-dismiss" aria-label="關閉使用說明提示">×</button>
         <p class="callout-title"><strong>第一次使用 SiteSpider？</strong></p>
@@ -1833,6 +1845,25 @@
       applyForm(data);
     }
 
+    function activateStaticPreviewMode() {
+      window.__ssStaticPreview = true;
+      const box = document.getElementById('static-host-warn');
+      if (box) box.classList.remove('hidden');
+      const sub = document.getElementById('context-sub');
+      if (sub) sub.textContent = '線上展示版僅供預覽介面；實際爬取請在本機啟動控制台';
+      const start = document.getElementById('btn-start');
+      if (start) {
+        start.disabled = true;
+        start.title = '線上展示版無法爬取，請在本機執行 bash scripts/dev-ui.sh';
+      }
+      SiteSpiderShell.showBanner(
+        'form-banner',
+        '展示版：無法連線爬蟲後端。請在本機執行 bash scripts/dev-ui.sh 後使用 http://127.0.0.1:8765/',
+        'info'
+      );
+      loadFormFromStorage();
+    }
+
     async function loadInfo() {
       try {
       const res = await fetch('/api/info');
@@ -1917,8 +1948,12 @@
       mountDashboardBrandHome();
       } catch (err) {
         console.error('loadInfo', err);
-        setRestoreStatus('無法連線控制台（請執行 bash scripts/dev-ui.sh）', true);
-        ssToast('無法連線 SiteSpider 伺服器，請確認本機已啟動', 'error');
+        if (SiteSpiderShell.isStaticPreviewHost && SiteSpiderShell.isStaticPreviewHost()) {
+          activateStaticPreviewMode();
+        } else {
+          setRestoreStatus('無法連線控制台（請執行 bash scripts/dev-ui.sh）', true);
+          ssToast('無法連線 SiteSpider 伺服器，請確認本機已啟動', 'error');
+        }
       }
     }
 
@@ -2576,6 +2611,12 @@
         log('Checkpoint：開' + (payload.resume_crawl ? '（恢復模式）' : ''));
       }
       if (payload.adaptive_extract) log('自適應擷取：開');
+
+      if (window.__ssStaticPreview) {
+        ssToast('線上展示版無法爬取，請在本機執行 bash scripts/dev-ui.sh', 'warn');
+        activateStaticPreviewMode();
+        return;
+      }
 
       log('開始爬取…');
       payload.tenant_id = document.getElementById('tenant_id').value.trim() || 'default';
