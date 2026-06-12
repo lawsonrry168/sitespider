@@ -6,13 +6,23 @@
   "buildCommand": "echo 'static UI only'",
   "outputDirectory": "sitespider/ui",
   "rewrites": [
+    { "source": "/ui/:path*", "destination": "/:path*" },
     { "source": "/guide", "destination": "/guide.html" },
     { "source": "/guide/", "destination": "/guide.html" },
     { "source": "/help", "destination": "/guide.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/pricing", "destination": "/pricing.html" },
     { "source": "/demo", "destination": "/demo.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/contact", "destination": "/contact.html" },
+    { "source": "/branding", "destination": "/branding.html" },
+    { "source": "/workspace", "destination": "/workspace.html" },
+    { "source": "/ai", "destination": "/ai.html" },
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/sites", "destination": "/sites.html" },
+    { "source": "/portal", "destination": "/portal.html" },
+    { "source": "/checkout/success", "destination": "/checkout_success.html" },
+    { "source": "/checkout-success", "destination": "/checkout_success.html" },
     { "source": "/", "destination": "/dashboard.html" }
   ],
   "headers": [
