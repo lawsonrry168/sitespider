@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from html import escape
 from pathlib import Path
 from urllib.parse import quote, urlparse
@@ -34,7 +35,7 @@ def load_ui_css(name: str) -> str:
 
 
 def report_styles_bundle() -> str:
-    """報告頁內嵌樣式（含返回按鈕 + 交付潤飾）。"""
+    """報告頁內嵌樣式（含返回按鈕 + 交付潤飾 + 護眼字級/配色）。"""
     return (
         load_ui_css("report-pages.css")
         + "\n"
@@ -47,10 +48,131 @@ def report_styles_bundle() -> str:
         + load_ui_css("site-reset.css")
         + "\n"
         + load_ui_css("nav-back.css")
+        + "\n"
+        + load_ui_css("comfort-display.css")
+        + "\n"
+        + load_ui_css("report-theme-unified.css")
     )
 
 
 REPORT_MAIN_OPEN = '<main class="report-main" id="main-content" tabindex="-1">'
+
+
+def report_theme_init_script() -> str:
+    """與控制台同步深/淺色；預設深色。"""
+    return (
+        "<script>"
+        '(function(){try{document.documentElement.setAttribute("data-theme",'
+        'localStorage.getItem("sitespider-theme")||"dark");}catch(e){'
+        'document.documentElement.setAttribute("data-theme","dark");}})();'
+        "</script>"
+    )
+
+
+REPORT_TOKEN_BRIDGE_STYLE = (
+    '<style id="ss-report-token-bridge">'
+    ":root{"
+    "--bg:#10141c;--bg2:#141a24;--card:#1c2432;--border:#2e384a;"
+    "--text:#d8d6d0;--muted:#7d8796;--accent:#6aab8f;"
+    "--link:#7ab89a;--link-hover:#94c9ad;"
+    "--accent-dim:rgba(106,171,143,.1);"
+    "--color-bg:var(--bg);--color-bg-subtle:var(--bg2);"
+    "--color-surface:var(--card);--color-border:var(--border);"
+    "--color-text:var(--text);--color-text-muted:var(--muted);"
+    "--color-accent:var(--accent);--color-link:var(--link);"
+    "--color-link-hover:var(--link-hover);"
+    "--color-accent-muted:var(--accent-dim);"
+    "--color-warn:#d4b86a;--color-danger:#d99a9a;"
+    "}"
+    "html{color-scheme:dark;background:var(--bg)}"
+    "a{color:var(--link)}a:hover{color:var(--link-hover)}"
+    ".report-nav a.nav-active{color:var(--accent)!important;"
+    "border-color:var(--border)!important;background:var(--accent-dim)!important}"
+    "a.report-guide-link:hover{background:var(--accent-dim)!important;"
+    "color:var(--link-hover)!important}"
+    '[data-theme="light"]{'
+    "--bg:#f5f3ef;--bg2:#ece9e2;--card:#fff;--border:#d8d2c6;"
+    "--text:#141820;--muted:#6a7384;--accent:#2a7d5a;"
+    "color-scheme:light"
+    "}"
+    "</style>"
+)
+
+
+def inject_report_theme_toggle(html: str) -> str:
+    """舊版報告 HTML 補上主題按鈕。"""
+    if "theme-toggle" in html:
+        return html
+    btn = report_theme_toggle_button()
+    marker = '<div class="report-topbar-end">'
+    if marker in html:
+        return html.replace(marker, marker + btn, 1)
+    return html
+
+
+def patch_report_html_theme(html: str) -> str:
+    """舊版嵌入報告補齊 tokens、護眼、全頁主題一致（無需重新爬取）。"""
+    needs_head = (
+        "ss-report-token-bridge" not in html
+        or "ss-eye-comfort" not in html
+        or "ss-report-unified" not in html
+        or (
+            "ss-analytics-overrides" not in html
+            and (
+                "score-card" in html
+                or "graph-toolbar" in html
+                or "heatmap-legend" in html
+            )
+        )
+    )
+    needs_toggle = "report-theme-toggle.js" not in html
+    if not needs_head and not needs_toggle and "theme-toggle" in html:
+        return html
+
+    patch = ""
+    if "ss-report-token-bridge" not in html:
+        patch += REPORT_TOKEN_BRIDGE_STYLE
+    if "ss-eye-comfort" not in html:
+        patch += (
+            f'<style id="ss-eye-comfort">\n{load_ui_css("comfort-display.css")}\n</style>'
+        )
+    if "ss-report-unified" not in html:
+        patch += (
+            f'<style id="ss-report-unified">\n'
+            f'{load_ui_css("report-theme-unified.css")}\n</style>'
+        )
+    if "score-card" in html and "ss-analytics-overrides" not in html:
+        patch += (
+            f'<style id="ss-analytics-overrides">\n'
+            f'{load_ui_css("analytics-theme-overrides.css")}\n</style>'
+        )
+    patch += report_theme_init_script()
+
+    out = html
+    if needs_head and "</head>" in out:
+        out = out.replace("</head>", patch + "\n</head>", 1)
+    elif needs_head and "<body" in out:
+        out = out.replace("<body", patch + "\n<body", 1)
+    elif needs_head:
+        out = patch + out
+
+    out = inject_report_theme_toggle(out)
+
+    if needs_toggle:
+        script = '<script src="/ui/report-theme-toggle.js"></script>'
+        if "</body>" in out:
+            out = out.replace("</body>", script + "\n</body>", 1)
+        else:
+            out += script
+    return out
+
+
+def report_theme_toggle_button() -> str:
+    """報告頂欄深/淺色切換（與控制台共用 localStorage）。"""
+    return (
+        '<button type="button" class="theme-toggle report-theme-toggle" '
+        'title="切換淺色" aria-label="切換主題">◑</button>'
+    )
 
 
 def report_skip_link() -> str:
@@ -157,18 +279,82 @@ def favicon_link_tags() -> str:
     return (
         '<link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">\n'
         '  <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">\n'
-        '  <meta name="theme-color" content="#0b0d12">'
+        '  <meta name="theme-color" content="#10141c">'
     )
 
 
 def console_stylesheet_tags(*extra: str) -> str:
     """Standard console CSS stack (paths only)."""
-    names = ("tokens.css", "shell.css", "theme.css", "comfort-display.css", "nav-back.css", *extra)
+    names = (
+        "tokens.css",
+        "shell.css",
+        "theme.css",
+        "comfort-display.css",
+        "nav-back.css",
+        *extra,
+    )
     return "\n".join(f'  <link rel="stylesheet" href="/ui/{n}">' for n in names)
 
 
 def _nav_file_exists(out_dir: Path, href: str) -> bool:
-    return (out_dir / href).is_file()
+    return _nav_resolve_href(out_dir, href) is not None
+
+
+def _nav_resolve_href(out_dir: Path, href: str) -> str | None:
+    """實際可開啟的檔名；交付導覽允許 .html / .md 互換。"""
+    if (out_dir / href).is_file():
+        return href
+    if href == "REPORT-zh.html" and (out_dir / "REPORT-zh.md").is_file():
+        return "REPORT-zh.md"
+    if href == "REPORT-zh.md" and (out_dir / "REPORT-zh.html").is_file():
+        return "REPORT-zh.html"
+    return None
+
+
+# 頂欄永遠保留（即使檔案暫缺也顯示鎖定，避免「交付導覽消失」）
+_NAV_ALWAYS_SHOW = frozenset({"REPORT-zh.html"})
+
+
+def ensure_report_zh_files(out_dir: Path) -> list[str]:
+    """若 crawl-report.json 在但交付導覽遺失（常見 iCloud 同步），嘗試補產。"""
+    written: list[str] = []
+    if not out_dir.is_dir():
+        return written
+    if (out_dir / "REPORT-zh.html").is_file() and (out_dir / "REPORT-zh.md").is_file():
+        return written
+    crawl = out_dir / "crawl-report.json"
+    if not crawl.is_file():
+        return written
+    try:
+        from sitespider.branding import Branding
+        from sitespider.report_load import load_report_json
+        from sitespider.report_readme import export_report_readme_html, export_report_readme_md
+
+        report = load_report_json(crawl)
+        label = report.start_url
+        summary_path = out_dir / "summary.json"
+        if summary_path.is_file():
+            try:
+                meta = json.loads(summary_path.read_text(encoding="utf-8"))
+                label = meta.get("site_label") or meta.get("label") or label
+            except (json.JSONDecodeError, OSError):
+                pass
+        brand = Branding()
+        if not (out_dir / "REPORT-zh.md").is_file():
+            export_report_readme_md(report, out_dir / "REPORT-zh.md", site_label=label, branding=brand)
+            written.append("REPORT-zh.md")
+        if not (out_dir / "REPORT-zh.html").is_file():
+            export_report_readme_html(
+                report,
+                out_dir / "REPORT-zh.html",
+                site_label=label,
+                branding=brand,
+                out_dir=out_dir,
+            )
+            written.append("REPORT-zh.html")
+    except Exception:
+        pass
+    return written
 
 
 def report_nav_links(
@@ -179,18 +365,42 @@ def report_nav_links(
     """交付報告共用頂欄連結；out_dir 存在時略過未產生的檔案，AI 項改為鎖定提示。"""
     parts: list[str] = []
     ai_hint = "請在爬取中心 → AI 文案 → 產生 AI 文案後再開啟"
+    guide_missing = "交付導覽檔案遺失 — 請在爬取中心重新開啟任務或重新爬取"
     for href, label, requires_ai in REPORT_NAV_ITEMS:
-        if out_dir is not None:
-            exists = _nav_file_exists(out_dir, href)
-            if not exists:
-                if requires_ai:
-                    parts.append(
-                        f'<span class="nav-locked" title="{escape(ai_hint)}">{escape(label)}</span>'
-                    )
-                continue
-        cls = ' class="nav-active"' if active and active == href else ""
-        parts.append(f'<a href="{escape(href)}"{cls}>{escape(label)}</a>')
+        resolved = _nav_resolve_href(out_dir, href) if out_dir is not None else href
+        if out_dir is not None and resolved is None:
+            if requires_ai:
+                parts.append(
+                    f'<span class="nav-locked" title="{escape(ai_hint)}">{escape(label)}</span>'
+                )
+            elif href in _NAV_ALWAYS_SHOW:
+                parts.append(
+                    f'<span class="nav-locked" title="{escape(guide_missing)}">{escape(label)}</span>'
+                )
+            continue
+        link = resolved if isinstance(resolved, str) else href
+        is_active = active and (active == href or active == link)
+        cls = ' class="nav-active"' if is_active else ""
+        parts.append(f'<a href="{escape(link)}"{cls}>{escape(label)}</a>')
     return '<nav class="report-nav" aria-label="報告頁面">' + "".join(parts) + "</nav>"
+
+
+def patch_report_nav(html: str, fp: Path) -> str:
+    """舊版報告 HTML：依磁碟現況重算頂欄導覽（避免匯出當下缺檔導致交付導覽消失）。"""
+    if 'class="report-nav"' not in html:
+        return html
+    job_dir = locate_report_job_dir(fp)
+    if job_dir is None:
+        return html
+    ensure_report_zh_files(job_dir)
+    fresh = report_nav_links(job_dir, active=fp.name)
+    return re.sub(
+        r'<nav class="report-nav"[^>]*>.*?</nav>',
+        fresh,
+        html,
+        count=1,
+        flags=re.DOTALL,
+    )
 
 
 def report_topbar(
@@ -222,6 +432,7 @@ def report_topbar(
     fb = _back_fallback(active, out_dir)
     nav = report_nav_links(out_dir, active=active)
     return (
+        f"{report_theme_init_script()}"
         f"{report_skip_link()}"
         f'<header class="report-topbar">'
         f'<div class="report-topbar-row report-topbar-context">'
@@ -237,6 +448,7 @@ def report_topbar(
         f"</div>"
         f"</div>"
         f'<div class="report-topbar-end">'
+        f"{report_theme_toggle_button()}"
         f'<a class="report-guide-link" href="/guide" title="SiteSpider 完整使用說明">使用說明</a>'
         f"{view_site}"
         f"</div>"
@@ -256,6 +468,7 @@ def _report_console_home_script(out_dir: Path | None) -> str:
     h_js = json.dumps(href)
     return (
         f"<script>window.__SS_CONSOLE_HOME={h_js};</script>\n"
+        f'<script src="/ui/report-theme-toggle.js"></script>\n'
         f'<script src="/ui/nav-back.js"></script>'
     )
 

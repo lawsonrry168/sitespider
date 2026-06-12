@@ -124,15 +124,14 @@ class RobotsManager:
             return True
 
         site_path = self._site_relative_path(url)
-        if self.info.disallowed_paths and self._path_disallowed(site_path):
-            return False
-
         if self.mode == "file":
+            if self.info.disallowed_paths and self._path_disallowed(site_path):
+                return False
             return True
 
-        return self._parser.can_fetch(self.user_agent, url) and self._parser.can_fetch(
-            self.user_agent, site_path
-        )
+        # HTTP：僅依 urllib RobotFileParser（依 User-Agent 匹配規則）。
+        # disallowed_paths 彙總全檔 Disallow 僅供報告，不可用於封鎖（Shopline 等含他 bot 的 Disallow: /）。
+        return self._parser.can_fetch(self.user_agent, url)
 
     def wait_crawl_delay(self) -> None:
         delay = self.info.crawl_delay

@@ -16,3 +16,4 @@ gsc-oauth-token.json
 scripts/gsc-env.sh
 .sitespider/
 .uploaded-config.json
+.vercel

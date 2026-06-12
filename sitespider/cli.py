@@ -179,6 +179,47 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="GSC 資源 URL（例 https://www.example.com/ 或 sc-domain:example.com）",
     )
+    parser.add_argument(
+        "--fetch-policy",
+        choices=("http", "js", "auto"),
+        default=None,
+        help="抓取策略：http=純 HTTP；js=全站 Playwright；auto=產品頁等走 JS",
+    )
+    parser.add_argument(
+        "--cache-responses",
+        action="store_true",
+        help="快取 HTTP 回應至磁碟（開發／重跑 parser 時不重打站）",
+    )
+    parser.add_argument("--cache-dir", type=Path, default=None, help="回應快取目錄")
+    parser.add_argument(
+        "--crawldir",
+        type=Path,
+        default=None,
+        help="checkpoint 目錄（中斷後可 --resume 續跑）",
+    )
+    parser.add_argument("--resume", action="store_true", help="從 crawldir checkpoint 恢復")
+    parser.add_argument(
+        "--checkpoint-interval",
+        type=int,
+        default=None,
+        metavar="N",
+        help="每 N 頁寫入 checkpoint（預設 25）",
+    )
+    parser.add_argument(
+        "--adaptive-extract",
+        action="store_true",
+        help="自訂擷取啟用 JSON-LD / regex fallback 鏈",
+    )
+    parser.add_argument(
+        "--stealth-headers",
+        action="store_true",
+        help="HTTP 請求附加瀏覽器風格標頭",
+    )
+    parser.add_argument(
+        "--scrapling",
+        action="store_true",
+        help="使用 Scrapling fetcher（需 pip install 'sitespider[scrapling]'）",
+    )
     return parser
 
 
@@ -336,6 +377,11 @@ def main(argv: list[str] | None = None) -> int:
 
         return multi_main(argv[1:])
 
+    if argv and argv[0] == "extract":
+        from sitespider.extract_cli import main as extract_main
+
+        return extract_main(argv[1:])
+
     args = build_parser().parse_args(argv)
 
     if args.ui:
@@ -403,6 +449,16 @@ def main(argv: list[str] | None = None) -> int:
         max_images_download=(
             args.max_images_download if getattr(args, "max_images_download", None) is not None else 300
         ),
+        fetch_policy=args.fetch_policy or "http",
+        cache_responses=bool(getattr(args, "cache_responses", False)),
+        cache_dir=str(args.cache_dir.resolve()) if getattr(args, "cache_dir", None) else None,
+        resume_crawl=bool(getattr(args, "resume", False)),
+        checkpoint_interval=(
+            args.checkpoint_interval if getattr(args, "checkpoint_interval", None) is not None else 25
+        ),
+        adaptive_extractions=bool(getattr(args, "adaptive_extract", False)),
+        stealth_headers=bool(getattr(args, "stealth_headers", False)),
+        use_scrapling=bool(getattr(args, "scrapling", False)),
     )
 
     if getattr(args, "gsc_inspect_max", None):
@@ -438,9 +494,27 @@ def main(argv: list[str] | None = None) -> int:
         print("警告：未安裝 openpyxl，請執行: pip install 'sitespider[excel]'", file=sys.stderr)
         args.xlsx = False
 
+    out_dir = args.output.resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    ck_dir = None
+    if getattr(args, "crawldir", None) or getattr(args, "resume", False):
+        ck_dir = (args.crawldir or out_dir / ".crawl").resolve()
+        config.crawldir = str(ck_dir)
+    if getattr(args, "cache_responses", False) and not config.cache_dir:
+        config.cache_dir = str((args.cache_dir or out_dir / ".cache").resolve())
+    if getattr(args, "resume", False) and ck_dir and not ck_dir.is_dir():
+        print(f"警告：找不到 checkpoint 目錄 {ck_dir}，將全新爬取", file=sys.stderr)
+
     print(f"SiteSpider v{__import__('sitespider').__version__}")
-    eff_workers = min(config.workers, 2) if config.render_javascript else config.workers
-    js_note = " · JS 渲染" if config.render_javascript else ""
+    uses_js = config.render_javascript or config.fetch_policy in ("js", "auto")
+    eff_workers = min(config.workers, 2) if uses_js else config.workers
+    js_note = ""
+    if config.render_javascript:
+        js_note = " · JS 渲染"
+    elif config.fetch_policy == "auto":
+        js_note = " · fetch=auto"
+    elif config.fetch_policy == "js":
+        js_note = " · fetch=js"
     print(f"模式: {args.mode} · 並行: {eff_workers}{js_note} · 深度 ≤{config.max_depth}")
     print(f"robots: {'開' if config.respect_robots else '關'} · sitemap: {'開' if config.use_sitemap else '關'}")
     if prefixes:
@@ -452,9 +526,11 @@ def main(argv: list[str] | None = None) -> int:
     if config.thin_content_min_words:
         print(f"內容過薄門檻: <{config.thin_content_min_words} 字")
     print(f"根目錄: {site_root}")
+    if config.cache_responses:
+        print("回應快取: 開")
+    if ck_dir:
+        print(f"checkpoint: {ck_dir}" + (" · 恢復" if config.resume_crawl else ""))
     print("爬取中…")
-
-    out_dir = args.output.resolve()
 
     crawler = SeoCrawler(
         start_url,
@@ -462,6 +538,7 @@ def main(argv: list[str] | None = None) -> int:
         site_root=site_root,
         config=config,
         lighthouse_out=out_dir / "lighthouse",
+        crawldir=ck_dir,
         on_progress=lambda d, t, u: print(f"  [{d}/{t}] {Path(u).name or u}", end="\r"),
     )
     report = crawler.crawl()

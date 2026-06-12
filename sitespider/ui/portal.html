@@ -2,6 +2,18 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
+  <script>
+    (function () {
+      try {
+        document.documentElement.setAttribute(
+          'data-theme',
+          localStorage.getItem('sitespider-theme') || 'dark'
+        );
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
   <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
   <meta name="theme-color" content="#0b0d12">
@@ -16,6 +28,9 @@
   <link rel="stylesheet" href="/ui/site-reset.css">
   <link rel="stylesheet" href="/ui/nav-back.css">
   <link rel="stylesheet" href="/ui/report-pages.css">
+  <link rel="stylesheet" href="/ui/report-theme-unified.css">
+  <script src="/ui/report-theme-toggle.js"></script>
+  <script src="/ui/app-shell.js"></script>
   <link rel="stylesheet" href="/ui/report-layout.css">
 </head>
 <body class="portal-page">
@@ -27,6 +42,9 @@
       </div>
       <div class="report-brand-block">
         <div class="report-brand"><span>SiteSpider</span> · 客戶報告專區</div>
+      </div>
+      <div class="report-topbar-end">
+        <button type="button" class="theme-toggle" title="切換主題" aria-label="切換主題">◑</button>
       </div>
     </div>
   </header>

@@ -21,7 +21,12 @@ _UI_INTERACTIVE = Path(__file__).resolve().parent / "ui" / "link_graph_interacti
 
 
 def _graph_css_bundle() -> tuple[str, str]:
-    return report_styles_bundle(), load_ui_css("link-graph.css")
+    return (
+        report_styles_bundle(),
+        load_ui_css("link-graph.css")
+        + "\n"
+        + load_ui_css("analytics-theme-overrides.css"),
+    )
 
 
 def _fill_graph_template(

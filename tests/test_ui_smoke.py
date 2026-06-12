@@ -55,6 +55,62 @@ def test_guide_html_served(tmp_path: Path, monkeypatch):
         httpd.shutdown()
 
 
+def test_running_job_pollable_without_crawl_json(tmp_path: Path, monkeypatch):
+    """進行中任務在尚未寫入 crawl-report.json 時仍可 GET /api/job/{id}。"""
+    monkeypatch.chdir(tmp_path)
+    httpd, _thread, port = _start_test_server(tmp_path)
+    try:
+        import urllib.request
+
+        body = json.dumps(
+            {
+                "mode": "http",
+                "url": "https://example.com/",
+                "max_pages": 1,
+                "max_depth": 0,
+            }
+        ).encode()
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/crawl",
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            created = json.loads(resp.read().decode())
+        job_id = created["job_id"]
+        req2 = urllib.request.Request(f"http://127.0.0.1:{port}/api/job/{job_id}")
+        with urllib.request.urlopen(req2, timeout=5) as resp:
+            job = json.loads(resp.read().decode())
+        assert resp.status == 200
+        assert job.get("status") in ("running", "exporting", "done", "error")
+        assert "error" not in job or not str(job.get("error", "")).startswith("找不到任務")
+    finally:
+        httpd.shutdown()
+
+
+def test_package_zip_resolves_reports_on_disk(tmp_path: Path, monkeypatch):
+    """本機 reports/ 內的報告（未在 job-history）仍可打包 ZIP。"""
+    report = tmp_path / "reports" / "smoke-job"
+    report.mkdir(parents=True)
+    (report / "crawl-report.json").write_text('{"start_url":"https://example.com/"}', encoding="utf-8")
+    (report / "REPORT-zh.md").write_text("# demo", encoding="utf-8")
+    (report / "issues.csv").write_text("x", encoding="utf-8-sig")
+    monkeypatch.chdir(tmp_path)
+    httpd, _thread, port = _start_test_server(tmp_path)
+    try:
+        import urllib.request
+
+        url = f"http://127.0.0.1:{port}/api/job/smoke-job/package.zip"
+        with urllib.request.urlopen(url, timeout=15) as resp:
+            data = resp.read()
+        assert resp.status == 200
+        assert data[:2] == b"PK"
+        assert "zip" in (resp.headers.get("Content-Type") or "").lower()
+    finally:
+        httpd.shutdown()
+
+
 def test_sites_html_served(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     httpd, _thread, port = _start_test_server(tmp_path)

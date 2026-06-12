@@ -17,6 +17,10 @@ class ExtractionRule:
     regex: str = ""
     attribute: str = ""
     extract: str = "text"  # text | html | attr
+    json_ld_type: str = ""
+    json_ld_field: str = ""
+    fallback_regex: str = ""
+    adaptive: bool = False
 
     @classmethod
     def from_dict(cls, data: dict) -> ExtractionRule | None:
@@ -29,6 +33,10 @@ class ExtractionRule:
             regex=str(data.get("regex") or data.get("pattern") or ""),
             attribute=str(data.get("attribute") or data.get("attr") or ""),
             extract=str(data.get("extract") or "text"),
+            json_ld_type=str(data.get("json_ld_type") or data.get("jsonLdType") or ""),
+            json_ld_field=str(data.get("json_ld_field") or data.get("jsonLdField") or ""),
+            fallback_regex=str(data.get("fallback_regex") or data.get("fallbackRegex") or ""),
+            adaptive=bool(data.get("adaptive", False)),
         )
 
 

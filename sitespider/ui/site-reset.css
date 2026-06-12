@@ -8,7 +8,7 @@
   --surface-inset: inset 0 1px 0 rgba(255, 255, 255, 0.035);
   --ring-focus: 0 0 0 2px var(--color-accent-muted);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --canvas-glow: rgba(107, 196, 155, 0.055);
+  --canvas-glow: rgba(106, 171, 143, 0.045);
   --canvas-glow-light: rgba(42, 125, 90, 0.06);
 }
 
@@ -91,7 +91,7 @@ body.report-body {
 .topnav a.nav-active,
 .report-nav a.nav-active {
   background: var(--color-accent-muted);
-  border-color: var(--color-border-glow);
+  border-color: var(--color-border-subtle);
   color: var(--color-accent);
   font-weight: 600;
   box-shadow: none;

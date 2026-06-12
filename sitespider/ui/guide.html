@@ -2,9 +2,21 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
+  <script>
+    (function () {
+      try {
+        document.documentElement.setAttribute(
+          'data-theme',
+          localStorage.getItem('sitespider-theme') || 'dark'
+        );
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
   <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
-  <meta name="theme-color" content="#0c0e14">
+  <meta name="theme-color" content="#10141c">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="SiteSpider 使用說明：爬取、交付、AI 文案、Search Console、報告品牌與方案功能完整教學。">
   <title>使用說明 — SiteSpider</title>
@@ -21,7 +33,7 @@
   <link rel="stylesheet" href="/ui/guide-page.css">
   <style>
     /* 保底：外部 CSS 未載入或預覽器異常時仍可閱讀 */
-    html { background: #0c0e14; color: #ebe9e3; color-scheme: dark light; }
+    html { background: #10141c; color: #d8d6d0; color-scheme: dark light; }
     body.guide-doc { margin: 0; min-height: 100vh; }
     .guide-file-only {
       display: none;

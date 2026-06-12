@@ -3,20 +3,30 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap");
 
 :root {
-  --bg: #0b0d12;
-  --bg2: #10141c;
-  --card: #181f2b;
-  --tab: #141a24;
-  --border: #2c3548;
-  --text: #f4f2ec;
-  --muted: #8b95a8;
-  --accent: #6ec9a0;
-  --accent-dim: rgba(110, 201, 160, 0.12);
-  --warn: #e8c468;
-  --danger: #e88a8a;
+  --bg: #10141c;
+  --bg2: #141a24;
+  --card: #1c2432;
+  --tab: #181f2b;
+  --border: #2e384a;
+  --text: #d8d6d0;
+  --muted: #7d8796;
+  --accent: #6aab8f;
+  --accent-dim: rgba(106, 171, 143, 0.1);
+  --link: #7ab89a;
+  --link-hover: #94c9ad;
+  --warn: #d4b86a;
+  --danger: #d99a9a;
   --font-display: "Outfit", "Noto Sans TC", system-ui, sans-serif;
   --font-sans: "Noto Sans TC", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg2);
+  --color-surface: var(--card);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-muted: var(--accent-dim);
 }
 
 * { box-sizing: border-box; }
@@ -47,7 +57,7 @@ body::before {
   font-size: 0.8rem;
   color: var(--muted);
   border-bottom: 1px solid var(--border);
-  background: rgba(9, 9, 11, 0.6);
+  background: var(--bg2);
 }
 
 .index-extra-meta a {
@@ -76,7 +86,7 @@ header .meta {
 }
 
 header .meta a { color: var(--accent); text-decoration: none; margin: 0 0.15rem; }
-header .meta a:hover { color: #8eddb6; }
+header .meta a:hover { color: var(--link-hover, var(--accent)); }
 
 header .meta .report-nav {
   display: inline;
@@ -190,10 +200,15 @@ td {
 
 tr:hover td { background: rgba(255, 255, 255, 0.02); }
 
-.addr { font-family: var(--font-mono); font-size: 11px; }
+.addr {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--link, var(--accent));
+}
 .idx-no { color: var(--danger); }
 .idx-yes { color: var(--accent); }
-a { color: var(--accent); }
+a { color: var(--link, var(--accent)); }
+a:hover { color: var(--link-hover, var(--accent)); }
 
 .charts { padding: 1rem; }
 

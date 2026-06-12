@@ -143,8 +143,8 @@ a:hover { color: var(--color-accent); }
 
 .topnav a.nav-active,
 .topnav a[aria-current="page"] {
-  color: var(--color-text);
-  border-color: var(--color-accent);
+  color: var(--color-accent);
+  border-color: var(--color-border-subtle);
   background: var(--color-accent-muted);
 }
 

@@ -447,7 +447,13 @@ def export_dashboard_html(
 ) -> None:
     data = compute_analytics(report, site_label=site_label)
     template = _UI.read_text(encoding="utf-8")
-    theme_css = report_styles_bundle() + "\n" + _ANALYTICS_THEME.read_text(encoding="utf-8")
+    theme_css = (
+        report_styles_bundle()
+        + "\n"
+        + _ANALYTICS_THEME.read_text(encoding="utf-8")
+        + "\n"
+        + load_ui_css("analytics-theme-overrides.css")
+    )
 
     health_class = "good" if data["health_score"] >= 70 else ("warn" if data["health_score"] >= 40 else "bad")
     idx_class = "bad" if data["indexable_pct"] < 30 else ("warn" if data["indexable_pct"] < 70 else "")

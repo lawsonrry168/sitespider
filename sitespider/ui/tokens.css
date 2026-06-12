@@ -10,40 +10,42 @@
   --font-sans: "Noto Sans TC", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
-  /* 藍染墨 — 風格重設：略提亮底、單一 accent、少雙色漸層 */
-  --color-bg: #0c0e14;
-  --color-bg-subtle: #11151d;
-  --color-bg-elevated: #151b26;
-  --color-surface: #1a212e;
-  --color-surface-hover: #212a3a;
-  --color-surface-solid: #1a212e;
-  --color-border: #2a3344;
-  --color-border-subtle: #38465c;
-  --color-border-focus: #5fbf96;
-  --color-border-glow: rgba(95, 191, 150, 0.22);
+  /* 藍染墨 — 護眼：略提亮底、降飽和、正文非純白 */
+  --color-bg: #10141c;
+  --color-bg-subtle: #141a24;
+  --color-bg-elevated: #181f2b;
+  --color-surface: #1c2432;
+  --color-surface-hover: #232d3d;
+  --color-surface-solid: #1c2432;
+  --color-border: #2e384a;
+  --color-border-subtle: #3a4658;
+  --color-border-focus: #6aab8f;
+  --color-border-glow: rgba(106, 171, 143, 0.18);
 
-  --color-text: #ebe9e3;
-  --color-text-secondary: #b4bcc9;
-  --color-text-muted: #8690a3;
-  --color-text-disabled: #5a6375;
+  --color-text: #d8d6d0;
+  --color-text-secondary: #a8b0be;
+  --color-text-muted: #7d8796;
+  --color-text-disabled: #5c6574;
 
-  /* 若竹 — 主色實心優先（漸層僅供品牌區塊選用） */
-  --color-accent: #62b892;
-  --color-accent-hover: #78c9a4;
-  --color-accent-dim: #1a4234;
-  --color-accent-2: #7a9fd4;
-  --color-accent-fg: #0a1610;
-  --color-accent-muted: rgba(98, 184, 146, 0.11);
-  --color-accent-glow: rgba(98, 184, 146, 0.16);
-  --gradient-accent: linear-gradient(135deg, #62b892 0%, #4fa87a 100%);
-  --gradient-brand: linear-gradient(135deg, #78c9a4 0%, #62b892 100%);
-  --gradient-surface: linear-gradient(180deg, #1e2634 0%, #1a212e 100%);
+  /* 若竹 — 連結/強調略降飽和，減少黑底光暈 */
+  --color-accent: #6aab8f;
+  --color-accent-hover: #82bda2;
+  --color-accent-dim: #1e3a30;
+  --color-accent-2: #8aa8cc;
+  --color-accent-fg: #0e1814;
+  --color-accent-muted: rgba(106, 171, 143, 0.1);
+  --color-accent-glow: rgba(106, 171, 143, 0.14);
+  --color-link: #7ab89a;
+  --color-link-hover: #94c9ad;
+  --gradient-accent: linear-gradient(135deg, #6aab8f 0%, #5a9a80 100%);
+  --gradient-brand: linear-gradient(135deg, #82bda2 0%, #6aab8f 100%);
+  --gradient-surface: linear-gradient(180deg, #1e2634 0%, #1c2432 100%);
 
-  --color-info: #8baee8;
-  --color-warn: #e8c468;
-  --color-warn-muted: rgba(232, 196, 104, 0.12);
-  --color-danger: #e88a8a;
-  --color-danger-muted: rgba(232, 138, 138, 0.12);
+  --color-info: #9ab4d4;
+  --color-warn: #d4b86a;
+  --color-warn-muted: rgba(212, 184, 106, 0.11);
+  --color-danger: #d99a9a;
+  --color-danger-muted: rgba(217, 154, 154, 0.11);
 
   /* Spacing & shape — slightly softer corners (日系圓潤) */
   --radius-xs: 6px;
@@ -95,6 +97,12 @@ html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  color-scheme: dark;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @media (min-width: 1440px) {

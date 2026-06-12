@@ -1,0 +1,142 @@
+/* 分析圖表 / 熱力圖 / 內鏈圖 — 主題一致覆寫（載入於 analytics-theme 之後） */
+
+[data-theme="light"] {
+  --bg: #f5f3ef;
+  --bg2: #ece9e2;
+  --card: #ffffff;
+  --card-hover: #f0ede6;
+  --border: #d8d2c6;
+  --text: #141820;
+  --muted: #6a7384;
+  --accent: #2a7d5a;
+  --accent-dim: rgba(42, 125, 90, 0.12);
+  --link: #2a7d5a;
+  --link-hover: #236b4d;
+  --warn: #9a7b2e;
+  --warn-dim: rgba(154, 123, 46, 0.12);
+  --danger: #b85c5c;
+  --danger-dim: rgba(184, 92, 92, 0.1);
+  --info: #3d6db5;
+  --shadow: 0 1px 3px rgba(20, 24, 32, 0.08);
+  --heat-empty: #ece9e2;
+  --heat-low: #d4ebe0;
+  --heat-mid: #7ab89a;
+  --heat-high: #2a7d5a;
+  --heat-fg: #141820;
+  --heat-fg-on-dark: #f5f3ef;
+}
+
+:root {
+  --heat-empty: #1a212e;
+  --heat-low: #243830;
+  --heat-mid: #3d6b52;
+  --heat-high: #6aab8f;
+  --heat-fg: #d8d6d0;
+  --heat-fg-on-dark: #0e1814;
+}
+
+/* score-card：勿用固定 #1c1c20 深底 + 淺色頁混搭 */
+.score-card {
+  background: linear-gradient(165deg, var(--bg2) 0%, var(--card) 72%) !important;
+  color: var(--text);
+}
+
+.score-card .score-meta h2,
+.score-card .ring-label,
+.score-card .ring-label .num {
+  color: var(--text) !important;
+}
+
+.score-card .score-meta p,
+.score-card .score-lbl,
+.score-card .score-num {
+  color: var(--muted) !important;
+}
+
+.score-card .grade-badge {
+  color: inherit;
+}
+
+.analytics-toolbar,
+.graph-toolbar {
+  background: var(--bg2) !important;
+  border-bottom-color: var(--border) !important;
+  color: var(--text);
+}
+
+.graph-toolbar .graph-meta,
+.graph-toolbar label {
+  color: var(--muted);
+}
+
+.analytics-toolbar a,
+.analytics-toolbar button,
+.graph-toolbar button {
+  background: var(--card) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+.analytics-toolbar a:hover,
+.analytics-toolbar button:hover,
+.graph-toolbar button:hover {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+.kpi,
+.card,
+.action,
+.sample-block {
+  background: var(--card);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.kpi .lbl,
+.card h3,
+.action p {
+  color: var(--muted);
+}
+
+/* 熱力圖格（取代 inline 黑底） */
+.heat-cell.heat-empty {
+  background: var(--heat-empty) !important;
+  color: var(--muted) !important;
+}
+
+.heat-cell.heat-low {
+  background: var(--heat-low) !important;
+  color: var(--heat-fg) !important;
+}
+
+.heat-cell.heat-mid {
+  background: var(--heat-mid) !important;
+  color: var(--heat-fg-on-dark) !important;
+}
+
+.heat-cell.heat-high {
+  background: var(--heat-high) !important;
+  color: var(--heat-fg-on-dark) !important;
+}
+
+.heatmap-legend .heatmap-swatch {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 0.2rem;
+}
+
+.heatmap-legend span:nth-child(1) .heatmap-swatch {
+  background: var(--heat-empty) !important;
+}
+
+.heatmap-legend span:nth-child(2) .heatmap-swatch {
+  background: var(--heat-mid) !important;
+}
+
+.heatmap-legend span:nth-child(3) .heatmap-swatch {
+  background: var(--heat-high) !important;
+}

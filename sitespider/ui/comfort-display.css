@@ -1,8 +1,84 @@
-/* 24"/27" 顯示器舒適閱讀 — 字級與行距覆寫（載入於 theme.css 之後） */
+/* 24"/27" 顯示器舒適閱讀 — 字級、行距、護眼配色（載入於 theme.css 之後） */
 
 body {
   font-size: var(--text-base);
   line-height: var(--line-body);
+}
+
+/* ── 護眼配色：降對比、連結降飽和、減少純白高光 ── */
+a {
+  color: var(--color-link, var(--color-accent));
+}
+
+a:hover {
+  color: var(--color-link-hover, var(--color-accent-hover));
+}
+
+h1,
+.page-title,
+.brand-title,
+.report-main > h1,
+.report-brand {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.topnav a.nav-active,
+.report-nav a.nav-active {
+  color: var(--color-accent) !important;
+  border-color: var(--color-border-subtle) !important;
+  background: var(--color-accent-muted) !important;
+  box-shadow: none !important;
+}
+
+.report-nav a:hover,
+.topnav a:hover {
+  color: var(--color-text-secondary);
+}
+
+.delivery-tile em,
+.delivery-tile .file-name,
+.report-main code,
+.addr {
+  color: var(--color-link, var(--color-accent));
+}
+
+.idx-yes,
+.kpi .val:not(.warn):not(.bad) {
+  color: var(--color-accent);
+}
+
+.idx-no,
+.kpi .val.bad {
+  color: var(--color-danger);
+}
+
+.kpi .val.warn {
+  color: var(--color-warn);
+}
+
+.score-hero,
+.health-ring-lg,
+.ring-label .num {
+  color: var(--color-warn);
+}
+
+a.report-guide-link:hover {
+  background: var(--color-accent-muted) !important;
+  color: var(--color-link-hover, var(--color-accent-hover)) !important;
+  border-color: var(--color-border-subtle) !important;
+}
+
+a.report-view-site-btn:hover {
+  color: var(--color-link-hover, var(--color-accent-hover));
+}
+
+tr:hover td {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+:focus-visible {
+  outline-color: var(--color-border-focus);
 }
 
 /* ── 最小字級下限：標籤 / 輔助文字不低於 --text-xs（≈13px） ── */

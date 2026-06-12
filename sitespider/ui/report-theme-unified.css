@@ -1,0 +1,109 @@
+/* 報告全頁主題一致：頂欄、導覽、表格與控制台同色票（勿用固定黑底 rgba） */
+
+.report-topbar {
+  background: var(--card, var(--color-surface, #1c2432));
+  border-bottom-color: var(--border, var(--color-border, #2e384a));
+}
+
+.report-topbar-docs {
+  background: var(--bg2, var(--color-bg-subtle, #141a24));
+}
+
+.report-topbar-end {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.report-topbar .theme-toggle {
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: var(--text-xs, 0.8125rem);
+  font-weight: 600;
+  padding: 0.42rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border, var(--color-border, #2e384a));
+  background: var(--bg2, var(--color-bg-subtle, #141a24));
+  color: var(--text, var(--color-text, #d8d6d0));
+  cursor: pointer;
+  line-height: 1;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease;
+}
+
+.report-topbar .theme-toggle:hover {
+  border-color: var(--color-border-subtle, var(--border));
+  background: var(--accent-dim, var(--color-accent-muted));
+  color: var(--accent, var(--color-accent));
+}
+
+body.report-body,
+body.report-index,
+body.portal-page {
+  background: var(--bg, var(--color-bg, #10141c));
+  color: var(--text, var(--color-text, #d8d6d0));
+}
+
+body.report-index .index-extra-meta {
+  background: var(--bg2, var(--color-bg-subtle));
+  border-color: var(--border);
+}
+
+body.report-index .stats,
+body.report-index .tabs {
+  background: var(--bg2, var(--color-bg-subtle));
+  border-color: var(--border);
+  color: var(--text);
+}
+
+body.report-index .panel {
+  background: var(--bg, var(--color-bg));
+}
+
+body.report-index .panel table thead th {
+  background: var(--card, var(--color-surface));
+  color: var(--muted, var(--color-text-muted));
+}
+
+body.report-index td {
+  color: var(--text, var(--color-text));
+  border-color: var(--border);
+}
+
+body.report-index .panel table tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+body.report-index #filter {
+  background: var(--card, var(--color-surface));
+  border-color: var(--border);
+  color: var(--text);
+}
+
+body.report-index #filter::placeholder {
+  color: var(--muted, var(--color-text-muted));
+}
+
+.report-nav a:hover {
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+[data-theme="light"] body.report-index .panel table tbody tr:nth-child(even) td {
+  background: rgba(20, 24, 32, 0.03);
+}
+
+[data-theme="light"] .report-topbar {
+  background: var(--card);
+}
+
+[data-theme="light"] .report-topbar-docs {
+  background: var(--bg2);
+}
+
+[data-theme="light"] .report-nav a.nav-active {
+  color: var(--accent) !important;
+  background: var(--accent-dim) !important;
+  border-color: var(--border) !important;
+}

@@ -1,7 +1,19 @@
 <!-- SiteSpider 控制台 <head> 標準片段（維護後執行: python scripts/sync-console-head.py --fix） -->
+  <script>
+    (function () {
+      try {
+        document.documentElement.setAttribute(
+          'data-theme',
+          localStorage.getItem('sitespider-theme') || 'dark'
+        );
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
   <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
-  <meta name="theme-color" content="#0c0e14">
+  <meta name="theme-color" content="#10141c">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="/ui/tokens.css">
   <link rel="stylesheet" href="/ui/shell.css">

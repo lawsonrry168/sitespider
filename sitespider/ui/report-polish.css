@@ -59,7 +59,7 @@ body::after {
 }
 
 .report-nav a.nav-active {
-  box-shadow: 0 0 0 1px rgba(110, 201, 160, 0.2);
+  box-shadow: none;
 }
 
 .ss-back:active {
@@ -84,7 +84,7 @@ body::after {
   width: 2.5rem;
   height: 3px;
   margin-top: 0.55rem;
-  background: linear-gradient(135deg, #6ec9a0 0%, #4aab82 100%);
+  background: linear-gradient(135deg, var(--accent, #6aab8f) 0%, #5a9a80 100%);
   border-radius: 2px;
 }
 
@@ -238,7 +238,7 @@ table.data td code {
 }
 
 .md-body a:hover {
-  color: #8eddb6;
+  color: var(--link-hover, var(--accent));
 }
 
 .md-body hr {

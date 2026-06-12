@@ -2,7 +2,15 @@
   {
     "name": "Product SKU",
     "css": "[data-product-sku], .sku",
-    "extract": "text"
+    "extract": "text",
+    "adaptive": true
+  },
+  {
+    "name": "Product Price",
+    "json_ld_type": "Product",
+    "json_ld_field": "offers.price",
+    "fallback_regex": "\"price_sale\"\\s*:\\s*\\{[^}]*\"dollars\"\\s*:\\s*([\\d.]+)",
+    "adaptive": true
   },
   {
     "name": "Phone",

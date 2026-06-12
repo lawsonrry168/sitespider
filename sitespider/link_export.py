@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from sitespider.crawler import CrawlReport
 
 from sitespider.link_graph import build_link_graph_data
-from sitespider.report_theme import report_styles_bundle, report_topbar
+from sitespider.report_theme import load_ui_css, report_styles_bundle, report_topbar
 
 
 def export_link_graph_gexf(

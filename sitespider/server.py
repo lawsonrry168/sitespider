@@ -103,6 +103,94 @@ def _get_job(job_id: str) -> dict | None:
         return _jobs.get(job_id)
 
 
+def _resolve_job_by_id(job_id: str) -> dict | None:
+    """
+    解析任務：記憶體 job → job-history → 本機 reports/（含 CLI／範例報告）。
+    回傳的 dict 保證含 report_dir / report_dir_abs（若報告存在）。
+    """
+    jid = str(job_id or "").strip()
+    if not jid:
+        return None
+
+    live = _get_job(jid)
+    if live:
+        out = dict(live)
+        out["job_id"] = jid
+        raw = str(out.get("report_dir_abs") or out.get("report_dir") or "").strip()
+        if raw:
+            rp = Path(raw)
+            if rp.is_dir():
+                out["report_dir"] = str(rp.resolve())
+                out["report_dir_abs"] = out["report_dir"]
+        # 進行中／匯出中：記憶體任務即可輪詢（尚未寫入 crawl-report.json）
+        if out.get("status") in ("running", "exporting"):
+            return out
+
+    job: dict | None = None
+    if live:
+        job = dict(live)
+    else:
+        for row in list_job_history(50):
+            if str(row.get("job_id") or "") == jid:
+                job = dict(row)
+                job["status"] = row.get("status") or "done"
+                break
+
+    reports_root = _reports_root()
+
+    def _finalize(found: dict, report_path: Path) -> dict:
+        rp = report_path.resolve()
+        found["job_id"] = jid
+        found["report_dir"] = str(rp)
+        found["report_dir_abs"] = str(rp)
+        if not found.get("status"):
+            found["status"] = "done"
+        return found
+
+    if job:
+        raw = str(job.get("report_dir_abs") or job.get("report_dir") or "").strip()
+        if raw:
+            rp = Path(raw)
+            if rp.is_dir() and (rp / "crawl-report.json").is_file():
+                return _finalize(job, rp)
+            if rp.is_dir() and job.get("status") == "error":
+                out_err = dict(job)
+                out_err["report_dir"] = str(rp.resolve())
+                out_err["report_dir_abs"] = out_err["report_dir"]
+                out_err["job_id"] = jid
+                return out_err
+        for candidate in (reports_root / "default" / jid, reports_root / jid):
+            if candidate.is_dir() and (candidate / "crawl-report.json").is_file():
+                return _finalize(job, candidate)
+
+    lookup_ids = ["123deal-smoke", jid] if jid == "demo" else [jid]
+    seen_lookup: set[str] = set()
+    for lookup in lookup_ids:
+        if lookup in seen_lookup:
+            continue
+        seen_lookup.add(lookup)
+        for candidate in (reports_root / "default" / lookup, reports_root / lookup):
+            if candidate.is_dir() and (candidate / "crawl-report.json").is_file():
+                return _finalize({"job_id": jid}, candidate)
+        if reports_root.is_dir():
+            for tenant_dir in reports_root.iterdir():
+                if not tenant_dir.is_dir():
+                    continue
+                candidate = tenant_dir / lookup
+                if candidate.is_dir() and (candidate / "crawl-report.json").is_file():
+                    row = {"job_id": jid, "tenant_id": tenant_dir.name}
+                    return _finalize(row, candidate)
+    return None
+
+
+def _job_report_dir(job: dict) -> Path:
+    """任務對應報告目錄（呼叫前應已通過 _resolve_job_by_id）。"""
+    raw = str(job.get("report_dir_abs") or job.get("report_dir") or "").strip()
+    if not raw:
+        raise FileNotFoundError("report_dir missing")
+    return Path(raw).resolve()
+
+
 def _set_job(job_id: str, data: dict) -> None:
     with _jobs_lock:
         _jobs[job_id] = data
@@ -326,9 +414,53 @@ def _branding_for_crawl(tenant_id: str, plan_id: str, payload: dict, site_cfg) -
     return branding_for_plan(plan, brand_raw or None)
 
 
+def _enrich_job_for_client(job: dict) -> dict:
+    """補齊 report_files 與 AI 狀態，避免 UI 因 running 誤鎖已產出的交付檔。"""
+    out = dict(job)
+    raw = str(out.get("report_dir_abs") or out.get("report_dir") or "").strip()
+    if not raw:
+        return out
+    rd = Path(raw)
+    if not rd.is_dir():
+        return out
+    on_disk = {p.name for p in rd.iterdir() if p.is_file()}
+    merged = set(out.get("report_files") or [])
+    merged.update(on_disk)
+    out["report_files"] = sorted(merged)
+    ai = dict(out.get("ai") or {})
+    if ai.get("status") == "running":
+        meta_path = rd / "ai-polish-meta.json"
+        if meta_path.is_file():
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                from sitespider.ai_settings_store import classify_ai_run_status
+
+                written = meta.get("written") or []
+                errors = meta.get("errors") or []
+                ai.update(
+                    {
+                        "status": classify_ai_run_status(
+                            written=written, errors=errors, ok=meta.get("ok")
+                        ),
+                        "written": written,
+                        "errors": errors,
+                        "provider_id": meta.get("provider_id") or ai.get("provider_id"),
+                        "model": meta.get("model") or ai.get("model"),
+                    }
+                )
+            except (json.JSONDecodeError, OSError):
+                pass
+        elif "ai-hub.html" in on_disk or "ai-faq-cms.html" in on_disk:
+            ai["status"] = "partial"
+            ai.setdefault("written", [f for f in ("ai-hub.html", "ai-faq-cms.html") if f in on_disk])
+    out["ai"] = ai
+    return out
+
+
 def _job_public_view(job: dict) -> dict:
     """給瀏覽器輪詢用，不含巨大 crawl JSON（避免控制字元導致 parse 失敗）。"""
-    return {k: v for k, v in job.items() if k != "report_json"}
+    view = {k: v for k, v in job.items() if k != "report_json"}
+    return _enrich_job_for_client(view)
 
 
 def _reports_root() -> Path:
@@ -419,6 +551,7 @@ def _run_crawl(job_id: str, payload: dict) -> None:
     if not brand_raw and site_cfg and site_cfg.branding:
         brand_raw = site_cfg.branding
     branding = _branding_for_crawl(tenant_id, plan_id, payload, site_cfg)
+    out_dir = _report_dir(tenant_id, job_id)
 
     config = CrawlConfig(
         max_pages=int(payload.get("max_pages", site_cfg.max_pages if site_cfg and site_cfg.max_pages else 500)),
@@ -461,6 +594,16 @@ def _run_crawl(job_id: str, payload: dict) -> None:
         custom_extractions=tuple(custom_rules),
         download_images=bool(payload.get("download_images", False)),
         max_images_download=int(payload.get("max_images_download", 300)),
+        fetch_policy=str(payload.get("fetch_policy") or "http"),
+        cache_responses=bool(payload.get("cache_responses", False)),
+        cache_dir=str(out_dir / ".cache") if payload.get("cache_responses") else None,
+        resume_crawl=bool(payload.get("resume_crawl", False)),
+        adaptive_extractions=bool(payload.get("adaptive_extract", False)),
+        stealth_headers=bool(payload.get("stealth_headers", False)),
+        use_scrapling=bool(payload.get("scrapling", False)),
+        crawldir=str(out_dir / ".crawl")
+        if payload.get("checkpoint") or payload.get("resume_crawl")
+        else None,
     )
 
     export_xlsx = bool(payload.get("xlsx")) or bool(site_cfg and site_cfg.export_xlsx)
@@ -473,7 +616,16 @@ def _run_crawl(job_id: str, payload: dict) -> None:
     if export_xlsx and not xlsx_available():
         export_xlsx = False
 
-    out_dir = _report_dir(tenant_id, job_id)
+    _patch_job(
+        job_id,
+        {
+            "report_dir": str(out_dir),
+            "report_dir_abs": str(out_dir.resolve()),
+            "tenant_id": tenant_id,
+            "plan_id": plan_id,
+            "progress": {"done": 0, "total": 1, "current": "啟動中…"},
+        },
+    )
     try:
         _write_crawl_snapshot(out_dir, payload)
     except OSError:
@@ -507,6 +659,7 @@ def _run_crawl(job_id: str, payload: dict) -> None:
             config=config,
             on_progress=progress,
             lighthouse_out=out_dir / "lighthouse",
+            crawldir=Path(config.crawldir) if config.crawldir else None,
         )
         crawler_holder["crawler"] = crawler
         report = crawler.crawl()
@@ -698,6 +851,141 @@ class CrawlerHandler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass
 
+    def _api_info_payload(self) -> dict:
+        cfg, cfg_path = load_site_config(DEFAULT_ROOT)
+        try:
+            from sitespider.js_render import playwright_available
+
+            render_js_available = playwright_available()
+        except ImportError:
+            render_js_available = False
+        try:
+            from sitespider.optional_scrapling import scrapling_available
+
+            scrapling_ok = scrapling_available()
+        except ImportError:
+            scrapling_ok = False
+        return {
+            "lighthouse_available": lighthouse_available(),
+            "xlsx_available": xlsx_available(),
+            "render_js_available": render_js_available,
+            "scrapling_available": scrapling_ok,
+            "crawl_engine": {
+                "fetch_policies": ["http", "auto", "js"],
+                "checkpoint": True,
+                "response_cache": True,
+            },
+            "default_root": str(DEFAULT_ROOT),
+            "config_path": str(cfg_path) if cfg_path else None,
+            "site_url": cfg.site_url if cfg else None,
+            "version": __version__,
+            "issue_labels": ISSUE_LABELS,
+            "example_configs": list_example_configs(),
+            "delivery_note": (
+                "無 Search Console 授權亦可完成站內稽核；"
+                "GSC 僅在客戶已驗證資源且 inspect_max>0 時啟用。"
+            ),
+            "custom_presets": [
+                {"id": k, "label": v.get("name", k)}
+                for k, v in CUSTOM_PRESET_RULES.items()
+            ],
+            "ai_configured": __import__(
+                "sitespider.ai_client", fromlist=["ai_configured"]
+            ).ai_configured(),
+            "ai_providers": __import__(
+                "sitespider.ai_providers", fromlist=["providers_public_json"]
+            ).providers_public_json(),
+            "ai_provider_default": os.environ.get("SITESPIDER_AI_PROVIDER", "openai"),
+            "stripe_configured": __import__(
+                "sitespider.stripe_checkout",
+                fromlist=["stripe_configured"],
+            ).stripe_configured(),
+            "stripe_ai_bonus_configured": __import__(
+                "sitespider.stripe_checkout",
+                fromlist=["ai_bonus_checkout_configured"],
+            ).ai_bonus_checkout_configured(),
+            "ai_bonus_pack_size": __import__(
+                "sitespider.stripe_checkout",
+                fromlist=["ai_bonus_pack_size"],
+            ).ai_bonus_pack_size(),
+            "dev_skip_quota": not __import__(
+                "sitespider.usage", fromlist=["quota_checks_enabled"]
+            ).quota_checks_enabled(),
+            "strict_plan": __import__(
+                "sitespider.plan_resolve", fromlist=["strict_plan_enforcement"]
+            ).strict_plan_enforcement(),
+            "client_plan_selectable": __import__(
+                "sitespider.plan_resolve", fromlist=["client_plan_selectable"]
+            ).client_plan_selectable(),
+        }
+
+    def _send_api_info_browser_page(self, data: dict) -> None:
+        """瀏覽器直接開 /api/info 時顯示深色說明頁，而非裸 JSON。"""
+        from html import escape
+
+        raw = json.dumps(data, ensure_ascii=False, indent=2)
+        body = escape(raw)
+        raw_js = json.dumps(raw, ensure_ascii=False)
+        page = f"""<!DOCTYPE html>
+<html lang="zh-TW"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SiteSpider API · /api/info</title>
+<link rel="stylesheet" href="/ui/tokens.css">
+<link rel="stylesheet" href="/ui/report-pages.css">
+<link rel="stylesheet" href="/ui/report-theme-unified.css">
+<script>
+(function(){{try{{
+document.documentElement.setAttribute("data-theme",localStorage.getItem("sitespider-theme")||"dark");
+}}catch(e){{document.documentElement.setAttribute("data-theme","dark");}}}})();
+</script>
+<style>
+.api-info-page{{max-width:56rem;margin:0 auto;padding:1.5rem 1.25rem 3rem}}
+.api-info-page h1{{font-family:var(--font-display);font-size:1.35rem;margin:0 0 .5rem}}
+.api-info-page p{{color:var(--muted);font-size:.9rem;line-height:1.6}}
+.api-info-toolbar{{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:1rem 0}}
+.api-info-toolbar a,.api-info-toolbar button{{
+  font-family:var(--font-display);font-size:.8rem;padding:.4rem .75rem;border-radius:999px;
+  border:1px solid var(--border);background:var(--card);color:var(--link);cursor:pointer;text-decoration:none}}
+.api-info-toolbar a:hover,.api-info-toolbar button:hover{{background:var(--accent-dim)}}
+#api-json{{
+  display:block;width:100%;min-height:50vh;padding:1rem;box-sizing:border-box;
+  font-family:var(--font-mono);font-size:.75rem;line-height:1.55;
+  background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:12px;
+  white-space:pre;overflow:auto}}
+#api-json.pretty{{white-space:pre-wrap;word-break:break-word}}
+</style></head>
+<body class="report-body">
+<div class="api-info-page">
+  <h1>/api/info</h1>
+  <p>這是給控制台 JavaScript 用的 JSON API。若要操作介面請開啟
+  <a href="/">爬取中心</a>。程式呼叫請用 <code>Accept: application/json</code>。</p>
+  <div class="api-info-toolbar">
+    <button type="button" class="theme-toggle" title="切換主題">◑</button>
+    <label><input type="checkbox" id="pretty"> 美化排版</label>
+    <a href="/api/info" id="raw-json">下載 JSON</a>
+    <a href="/">← 爬取中心</a>
+  </div>
+  <pre id="api-json" class="pretty">{body}</pre>
+</div>
+<script src="/ui/report-theme-toggle.js"></script>
+<script>
+(function(){{
+  var pre=document.getElementById("api-json");
+  var raw={raw_js};
+  var cb=document.getElementById("pretty");
+  function render(){{ pre.textContent=raw; pre.classList.toggle("pretty",cb.checked); }}
+  cb.addEventListener("change",render); render();
+}})();
+</script>
+</body></html>"""
+        encoded = page.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.wfile.write(encoded)
+
     def _send_json(self, data: dict, status: int = 200) -> None:
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
@@ -799,8 +1087,21 @@ class CrawlerHandler(BaseHTTPRequestHandler):
                 return self._send_file(html_alt, "text/html; charset=utf-8", no_cache=True)
         if fp.suffix == ".html":
             try:
+                from sitespider.report_theme import (
+                    ensure_report_zh_files,
+                    locate_report_job_dir,
+                    patch_report_html_theme,
+                    patch_report_nav,
+                )
+
+                job_dir = locate_report_job_dir(fp)
+                if job_dir is not None:
+                    ensure_report_zh_files(job_dir)
+                raw = fp.read_text(encoding="utf-8")
+                raw = patch_report_html_theme(raw)
+                raw = patch_report_nav(raw, fp)
                 html_body = self._patch_report_html_meta(
-                    self._inject_report_nav_helpers(fp.read_text(encoding="utf-8"), fp),
+                    self._inject_report_nav_helpers(raw, fp),
                     fp,
                 ).encode("utf-8")
                 self.send_response(200)
@@ -935,62 +1236,11 @@ class CrawlerHandler(BaseHTTPRequestHandler):
             )
 
         if path == "/api/info":
-            cfg, cfg_path = load_site_config(DEFAULT_ROOT)
-            try:
-                from sitespider.js_render import playwright_available
-
-                render_js_available = playwright_available()
-            except ImportError:
-                render_js_available = False
-            return self._send_json(
-                {
-                    "lighthouse_available": lighthouse_available(),
-                    "xlsx_available": xlsx_available(),
-                    "render_js_available": render_js_available,
-                    "default_root": str(DEFAULT_ROOT),
-                    "config_path": str(cfg_path) if cfg_path else None,
-                    "site_url": cfg.site_url if cfg else None,
-                    "version": __version__,
-                    "issue_labels": ISSUE_LABELS,
-                    "example_configs": list_example_configs(),
-                    "delivery_note": (
-                        "無 Search Console 授權亦可完成站內稽核；"
-                        "GSC 僅在客戶已驗證資源且 inspect_max>0 時啟用。"
-                    ),
-                    "custom_presets": [
-                        {"id": k, "label": v.get("name", k)}
-                        for k, v in CUSTOM_PRESET_RULES.items()
-                    ],
-                    "ai_configured": __import__(
-                        "sitespider.ai_client", fromlist=["ai_configured"]
-                    ).ai_configured(),
-                    "ai_providers": __import__(
-                        "sitespider.ai_providers", fromlist=["providers_public_json"]
-                    ).providers_public_json(),
-                    "ai_provider_default": os.environ.get("SITESPIDER_AI_PROVIDER", "openai"),
-                    "stripe_configured": __import__(
-                        "sitespider.stripe_checkout",
-                        fromlist=["stripe_configured"],
-                    ).stripe_configured(),
-                    "stripe_ai_bonus_configured": __import__(
-                        "sitespider.stripe_checkout",
-                        fromlist=["ai_bonus_checkout_configured"],
-                    ).ai_bonus_checkout_configured(),
-                    "ai_bonus_pack_size": __import__(
-                        "sitespider.stripe_checkout",
-                        fromlist=["ai_bonus_pack_size"],
-                    ).ai_bonus_pack_size(),
-                    "dev_skip_quota": not __import__(
-                        "sitespider.usage", fromlist=["quota_checks_enabled"]
-                    ).quota_checks_enabled(),
-                    "strict_plan": __import__(
-                        "sitespider.plan_resolve", fromlist=["strict_plan_enforcement"]
-                    ).strict_plan_enforcement(),
-                    "client_plan_selectable": __import__(
-                        "sitespider.plan_resolve", fromlist=["client_plan_selectable"]
-                    ).client_plan_selectable(),
-                }
-            )
+            info = self._api_info_payload()
+            accept = (self.headers.get("Accept") or "").lower()
+            if "text/html" in accept and accept.strip().startswith("text/html"):
+                return self._send_api_info_browser_page(info)
+            return self._send_json(info)
 
         if path == "/api/jobs":
             return self._send_json({"jobs": _enrich_job_history(list_job_history(25))})
@@ -1125,30 +1375,27 @@ class CrawlerHandler(BaseHTTPRequestHandler):
             # /api/job/{id} or /api/job/{id}/package.zip
             if len(parts) >= 3 and parts[0] == "api" and parts[1] == "job":
                 job_id = parts[2]
-                job = _get_job(job_id)
+                job = _resolve_job_by_id(job_id)
                 if not job:
-                    for row in list_job_history(50):
-                        if row.get("job_id") == job_id:
-                            job = dict(row)
-                            job["status"] = row.get("status") or "done"
-                            job["report_dir"] = row.get("report_dir_abs")
-                            break
-                if not job:
-                    return self._send_json({"error": "job not found"}, 404)
+                    return self._send_json(
+                        {
+                            "error": "找不到任務或報告目錄。請確認爬取已完成，且本機 reports/ 內仍有該任務資料夾。",
+                            "job_id": job_id,
+                        },
+                        404,
+                    )
                 if len(parts) >= 4 and parts[3] == "delivery-checklist":
-                    if job.get("status") != "done" or not job.get("report_dir"):
+                    if job.get("status") != "done":
                         return self._send_json({"error": "report not ready"}, 400)
                     from sitespider.delivery_manifest import delivery_checklist
 
-                    return self._send_json(
-                        delivery_checklist(Path(str(job.get("report_dir") or job.get("report_dir_abs"))))
-                    )
+                    return self._send_json(delivery_checklist(_job_report_dir(job)))
                 if len(parts) >= 4 and parts[3] == "package.zip":
-                    if job.get("status") != "done" or not job.get("report_dir"):
+                    if job.get("status") != "done":
                         return self._send_json({"error": "report not ready"}, 400)
                     from sitespider.package_report import package_report_dir
 
-                    report_dir = Path(job["report_dir"])
+                    report_dir = _job_report_dir(job)
                     zip_path = report_dir / f"{job_id}-delivery.zip"
                     try:
                         package_report_dir(report_dir, zip_path)
@@ -1160,11 +1407,11 @@ class CrawlerHandler(BaseHTTPRequestHandler):
                         "application/zip",
                     )
                 if len(parts) >= 4 and parts[3] == "images.zip":
-                    if job.get("status") != "done" or not job.get("report_dir"):
+                    if job.get("status") != "done":
                         return self._send_json({"error": "report not ready"}, 400)
                     from sitespider.package_report import package_images_dir
 
-                    report_dir = Path(str(job.get("report_dir") or job.get("report_dir_abs")))
+                    report_dir = _job_report_dir(job)
                     zip_path = report_dir / f"{job_id}-images.zip"
                     try:
                         package_images_dir(report_dir, zip_path)
@@ -1176,14 +1423,14 @@ class CrawlerHandler(BaseHTTPRequestHandler):
                         "application/zip",
                     )
                 if len(parts) >= 4 and parts[3] == "client-report.html":
-                    if job.get("status") != "done" or not job.get("report_dir"):
+                    if job.get("status") != "done":
                         return self._send_json({"error": "report not ready"}, 400)
                     from sitespider.standalone_client_report import (
                         STANDALONE_FILENAME,
                         export_standalone_client_html,
                     )
 
-                    report_dir = Path(str(job.get("report_dir") or job.get("report_dir_abs")))
+                    report_dir = _job_report_dir(job)
                     fp = report_dir / STANDALONE_FILENAME
                     try:
                         if not fp.is_file():
@@ -1707,8 +1954,8 @@ class CrawlerHandler(BaseHTTPRequestHandler):
             if len(parts) < 4:
                 return self._send_json({"error": "invalid path"}, 400)
             job_id = parts[2]
-            job = _get_job(job_id)
-            if not job or job.get("status") != "done" or not job.get("report_dir"):
+            job = _resolve_job_by_id(job_id)
+            if not job or job.get("status") != "done":
                 return self._send_json({"error": "報告尚未就緒"}, 400)
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length).decode("utf-8")
@@ -1737,7 +1984,7 @@ class CrawlerHandler(BaseHTTPRequestHandler):
                 share = create_report_share(
                     tenant_id=tenant,
                     job_id=job_id,
-                    report_dir=Path(job["report_dir"]),
+                    report_dir=_job_report_dir(job),
                     label=(job.get("client_label") or payload.get("label") or job_id),
                     ttl_days=ttl,
                 )

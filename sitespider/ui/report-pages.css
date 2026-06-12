@@ -3,16 +3,18 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap");
 
 :root {
-  --bg: #0b0d12;
-  --bg2: #10141c;
-  --card: #181f2b;
-  --border: #2c3548;
-  --text: #f4f2ec;
-  --muted: #8b95a8;
-  --accent: #6ec9a0;
-  --accent-dim: rgba(110, 201, 160, 0.12);
-  --warn: #e8c468;
-  --danger: #e88a8a;
+  --bg: #10141c;
+  --bg2: #141a24;
+  --card: #1c2432;
+  --border: #2e384a;
+  --text: #d8d6d0;
+  --muted: #7d8796;
+  --accent: #6aab8f;
+  --accent-dim: rgba(106, 171, 143, 0.1);
+  --link: #7ab89a;
+  --link-hover: #94c9ad;
+  --warn: #d4b86a;
+  --danger: #d99a9a;
   --font-display: "Outfit", "Noto Sans TC", system-ui, sans-serif;
   --font-sans: "Noto Sans TC", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -29,9 +31,54 @@
   --line-snug: 1.4;
   --content-max: 1280px;
   --content-readable: 48rem;
+
+  /* site-reset / ux-friendly 使用 tokens 命名；嵌入報告僅有 --bg 等別名 */
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg2);
+  --color-surface: var(--card);
+  --color-surface-hover: var(--card);
+  --color-surface-solid: var(--card);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border);
+  --color-border-glow: var(--accent-dim);
+  --color-text: var(--text);
+  --color-text-secondary: var(--text);
+  --color-text-muted: var(--muted);
+  --color-text-disabled: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--link-hover);
+  --color-link: var(--link);
+  --color-link-hover: var(--link-hover);
+  --color-accent-dim: var(--accent-dim);
+  --color-accent-muted: var(--accent-dim);
+  --color-accent-fg: var(--bg);
+  --color-accent-2: #8baee8;
+  --color-warn: var(--warn);
+  --color-warn-muted: rgba(232, 196, 104, 0.12);
+  --color-danger: var(--danger);
+  --color-danger-muted: rgba(232, 138, 138, 0.12);
+  --color-info: #8baee8;
 }
 
-html { font-size: 16px; }
+html {
+  font-size: 16px;
+  color-scheme: dark;
+  background: var(--bg);
+}
+
+[data-theme="light"] {
+  --bg: #f5f3ef;
+  --bg2: #ece9e2;
+  --card: #ffffff;
+  --border: #d8d2c6;
+  --text: #141820;
+  --muted: #6a7384;
+  --accent: #2a7d5a;
+  --accent-dim: rgba(42, 125, 90, 0.1);
+  --warn: #b8860b;
+  --danger: #c44;
+  color-scheme: light;
+}
 
 @media (min-width: 1440px) {
   html { font-size: 17px; }
@@ -65,8 +112,8 @@ body::before {
   pointer-events: none;
 }
 
-a { color: var(--accent); text-decoration: none; transition: color 0.18s ease; }
-a:hover { color: #8eddb6; }
+a { color: var(--link, var(--accent)); text-decoration: none; transition: color 0.18s ease; }
+a:hover { color: var(--link-hover, var(--accent)); }
 
 a:focus-visible,
 button:focus-visible,
@@ -82,8 +129,8 @@ select:focus-visible {
   align-items: stretch;
   gap: 0.65rem;
   padding: 0.75rem 1.25rem 0.85rem;
-  background: rgba(9, 9, 11, 0.94);
-  backdrop-filter: blur(16px);
+  background: var(--card);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -144,7 +191,7 @@ a.report-brand-home {
 }
 
 .report-topbar-meta a.report-view-site:hover {
-  color: #8eddb6;
+  color: var(--link-hover, var(--accent));
 }
 
 .report-topbar-meta .report-host {
@@ -177,9 +224,10 @@ a.report-brand-home {
 }
 
 .report-nav a.nav-active {
-  color: var(--text);
-  border-color: var(--accent);
+  color: var(--accent);
+  border-color: var(--border);
   background: var(--accent-dim);
+  box-shadow: none;
 }
 
 .report-nav .nav-locked {

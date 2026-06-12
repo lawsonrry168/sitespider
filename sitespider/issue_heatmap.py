@@ -36,21 +36,16 @@ def build_prefix_issue_matrix(report: CrawlReport, *, prefix_depth: int = 2) -> 
     return {p: dict(matrix[p]) for p in sorted(matrix.keys(), key=lambda x: (-page_counts[x], x))}
 
 
-def _cell_color(count: int, max_c: int) -> str:
+def _cell_class(count: int, max_c: int) -> str:
+    """CSS class heat levels — colors from analytics-theme-overrides.css."""
     if count <= 0:
-        return "#10141c"
+        return "heat-cell heat-empty"
     t = min(1.0, count / max(max_c, 1))
-    r = int(16 + (110 - 16) * t)
-    g = int(20 + (201 - 20) * t)
-    b = int(28 + (160 - 28) * t)
-    return f"rgb({r},{g},{b})"
-
-
-def _cell_fg(count: int, max_c: int) -> str:
-    if count <= 0:
-        return "#8b95a8"
-    t = min(1.0, count / max(max_c, 1))
-    return "#0a1812" if t > 0.5 else "#f4f2ec"
+    if t < 0.35:
+        return "heat-cell heat-low"
+    if t < 0.7:
+        return "heat-cell heat-mid"
+    return "heat-cell heat-high"
 
 
 def export_issue_heatmap_html(
@@ -61,7 +56,13 @@ def export_issue_heatmap_html(
     prefix_depth: int = 2,
 ) -> None:
     brand = branding or Branding()
-    css = report_styles_bundle()
+    from sitespider.report_theme import load_ui_css
+
+    css = (
+        report_styles_bundle()
+        + "\n"
+        + load_ui_css("analytics-theme-overrides.css")
+    )
     matrix = build_prefix_issue_matrix(report, prefix_depth=prefix_depth)
     all_issues: set[str] = set()
     for issues in matrix.values():
@@ -78,9 +79,12 @@ def export_issue_heatmap_html(
         cells = ""
         for k in issue_cols[:20]:
             n = issues.get(k, 0)
-            bg = _cell_color(n, max_cell)
-            fg = _cell_fg(n, max_cell)
-            cells += f'<td style="background:{bg};color:{fg};text-align:center;font-family:var(--font-mono);font-size:11px">{n or ""}</td>'
+            cls = _cell_class(n, max_cell)
+            cells += (
+                f'<td class="{cls}" '
+                f'style="text-align:center;font-family:var(--font-mono);font-size:11px">'
+                f"{n or ''}</td>"
+            )
         body_rows += f"<tr><td><code>{escape(prefix)}</code></td>{cells}</tr>\n"
 
     html = f"""<!DOCTYPE html>
@@ -106,9 +110,9 @@ def export_issue_heatmap_html(
       </table>
     </div>
     <div class="heatmap-legend">
-      <span><i class="heatmap-swatch" style="background:#10141c"></i> 無問題</span>
-      <span><i class="heatmap-swatch" style="background:#2a7d5a"></i> 中等</span>
-      <span><i class="heatmap-swatch" style="background:#6ec9a0"></i> 較多</span>
+      <span><i class="heatmap-swatch"></i> 無問題</span>
+      <span><i class="heatmap-swatch"></i> 中等</span>
+      <span><i class="heatmap-swatch"></i> 較多</span>
     </div>
   </main>
 </body>

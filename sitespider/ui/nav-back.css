@@ -52,8 +52,8 @@
 }
 
 .report-topbar .ss-console-home:hover {
-  color: #8eddb6;
-  border-color: var(--accent, #6ec9a0);
+  color: var(--color-link-hover, var(--link-hover, var(--accent)));
+  border-color: var(--color-border-subtle, var(--border));
   background: rgba(110, 201, 160, 0.18);
 }
 

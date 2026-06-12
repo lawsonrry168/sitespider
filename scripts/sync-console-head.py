@@ -26,9 +26,21 @@ CONSOLE_PAGES = (
 )
 
 # Canonical block (after charset, before viewport)
-HEAD_BLOCK = """  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
+HEAD_BLOCK = """  <script>
+    (function () {
+      try {
+        document.documentElement.setAttribute(
+          'data-theme',
+          localStorage.getItem('sitespider-theme') || 'dark'
+        );
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+  <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
-  <meta name="theme-color" content="#0c0e14">"""
+  <meta name="theme-color" content="#10141c">"""
 
 REQUIRED = [
     'href="/ui/brand-mark.svg"',

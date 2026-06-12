@@ -2,9 +2,21 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
+  <script>
+    (function () {
+      try {
+        document.documentElement.setAttribute(
+          'data-theme',
+          localStorage.getItem('sitespider-theme') || 'dark'
+        );
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
   <link rel="icon" href="/ui/brand-mark.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/ui/apple-touch-icon.svg">
-  <meta name="theme-color" content="#0b0d12">
+  <meta name="theme-color" content="#10141c">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>付款成功 — SiteSpider</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -34,7 +34,7 @@ a.report-view-site-btn {
   border-radius: 999px;
   border: 1px solid var(--border, #2c3548);
   background: var(--card, #181f2b);
-  color: var(--accent, #6ec9a0);
+  color: var(--link, var(--accent, #6aab8f));
   font-family: var(--font-display);
   font-size: var(--text-xs, 0.8125rem);
   font-weight: 600;
@@ -47,9 +47,9 @@ a.report-view-site-btn {
 }
 
 a.report-view-site-btn:hover {
-  border-color: var(--accent, #6ec9a0);
-  background: var(--accent-dim, rgba(110, 201, 160, 0.12));
-  color: #8eddb6;
+  border-color: var(--color-border-subtle, var(--border, #2e384a));
+  background: var(--accent-dim, rgba(106, 171, 143, 0.1));
+  color: var(--link-hover, var(--accent, #6aab8f));
 }
 
 a.report-guide-link {
@@ -57,9 +57,9 @@ a.report-guide-link {
   align-items: center;
   padding: 0.42rem 0.8rem;
   border-radius: 999px;
-  border: 1px solid var(--accent, #6ec9a0);
-  background: var(--accent-dim, rgba(110, 201, 160, 0.12));
-  color: var(--accent, #6ec9a0);
+  border: 1px solid var(--color-border-subtle, var(--border, #2e384a));
+  background: var(--accent-dim, rgba(106, 171, 143, 0.1));
+  color: var(--link, var(--accent, #6aab8f));
   font-family: var(--font-display);
   font-size: var(--text-xs, 0.8125rem);
   font-weight: 600;
@@ -72,9 +72,9 @@ a.report-guide-link {
 }
 
 a.report-guide-link:hover {
-  background: var(--accent, #6ec9a0);
-  color: var(--bg, #0b0d12);
-  border-color: var(--accent, #6ec9a0);
+  background: var(--accent-dim, rgba(106, 171, 143, 0.12));
+  color: var(--link-hover, var(--accent, #6aab8f));
+  border-color: var(--color-border-subtle, var(--border, #2e384a));
 }
 
 .sr-only-report {
@@ -102,7 +102,7 @@ a.report-guide-link:hover {
   width: 100%;
   min-width: 0;
   padding: 0.45rem 1.15rem 0.55rem;
-  background: rgba(0, 0, 0, 0.18);
+  background: var(--bg2, var(--color-bg-subtle, #141a24));
 }
 
 .report-nav-label {
@@ -154,7 +154,7 @@ a.report-guide-link:hover {
 .report-topbar:not(:has(.report-topbar-docs)) > .report-nav {
   width: 100%;
   padding: 0.45rem 1.15rem 0.6rem;
-  background: rgba(0, 0, 0, 0.18);
+  background: var(--bg2, var(--color-bg-subtle, #141a24));
   flex-wrap: nowrap;
   overflow-x: auto;
 }

@@ -12,8 +12,9 @@ def test_playwright_available_false_when_missing():
         assert isinstance(playwright_available(), bool)
 
 
-def test_fetch_http_uses_renderer():
-    config = CrawlConfig(render_javascript=False, workers=1)
+@patch("sitespider.js_render.playwright_available", return_value=True)
+def test_fetch_http_uses_renderer(_mock_pw):
+    config = CrawlConfig(render_javascript=False, workers=1, fetch_policy="js")
     crawler = SeoCrawler("https://example.com/", mode="http", config=config)
     mock_renderer = MagicMock()
     mock_renderer.fetch.return_value = RenderedPage(

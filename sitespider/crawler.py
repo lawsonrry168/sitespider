@@ -151,6 +151,16 @@ class CrawlConfig:
     images_same_host_only: bool = True
     gsc_site_url: str | None = None
     gsc_inspect_max: int = 0
+    fetch_policy: str = "http"  # http | js | auto
+    auto_js_path_patterns: tuple[str, ...] = ()
+    cache_responses: bool = False
+    cache_dir: str | None = None
+    crawldir: str | None = None
+    resume_crawl: bool = False
+    checkpoint_interval: int = 25
+    adaptive_extractions: bool = False
+    stealth_headers: bool = False
+    use_scrapling: bool = False
 
 
 @dataclass
@@ -402,6 +412,7 @@ class SeoCrawler:
         user_agent: str = "SiteSpider/1.0 (+https://github.com/sitespider/seo-crawl)",
         on_progress: Callable[[int, int, str], None] | None = None,
         lighthouse_out: Path | None = None,
+        crawldir: Path | None = None,
     ):
         self.start_url = start_url
         self.mode = mode
@@ -410,6 +421,10 @@ class SeoCrawler:
         self.user_agent = user_agent
         self.on_progress = on_progress
         self.lighthouse_out = lighthouse_out
+        self.crawldir = crawldir
+        if self.crawldir is None and self.config.crawldir:
+            self.crawldir = Path(self.config.crawldir)
+        self.report: CrawlReport | None = None
         self._screenshot_dir = None
         if config.save_screenshots and lighthouse_out:
             self._screenshot_dir = lighthouse_out.parent / "screenshots"
@@ -433,22 +448,29 @@ class SeoCrawler:
             enabled=self.config.respect_robots,
         )
         self._js_renderer = None
-        if self.config.render_javascript and mode == "http":
-            from sitespider.js_render import PlaywrightRenderer, playwright_available
+        self._need_playwright = mode == "http" and (
+            self.config.render_javascript
+            or self.config.fetch_policy in ("js", "auto")
+        )
+        if self._need_playwright:
+            from sitespider.js_render import playwright_available
 
             if not playwright_available():
-                raise RuntimeError(
-                    "已啟用 --render-js，但未安裝 Playwright。請執行：\n"
-                    '  pip install "sitespider[browser]"\n'
-                    "  playwright install chromium"
-                )
-            self._js_renderer = PlaywrightRenderer(
-                user_agent=user_agent,
-                timeout_ms=self.config.render_timeout_ms,
-                wait_until=self.config.render_wait_until,  # type: ignore[arg-type]
-                extra_wait_ms=self.config.render_extra_wait_ms,
-                capture_console=self.config.capture_console,
-            )
+                if self.config.render_javascript or self.config.fetch_policy == "js":
+                    raise RuntimeError(
+                        "已啟用 JS 渲染，但未安裝 Playwright。請執行：\n"
+                        '  pip install "sitespider[browser]"\n'
+                        "  playwright install chromium"
+                    )
+        from sitespider.response_cache import ResponseCache
+
+        cache_root = Path(self.config.cache_dir) if self.config.cache_dir else (
+            self.crawldir / ".cache" if self.crawldir else self.site_root / ".sitespider" / "cache"
+        )
+        self._response_cache = ResponseCache(
+            cache_root,
+            enabled=bool(self.config.cache_responses and mode == "http"),
+        )
         self._extraction_rules = ()
         if config.custom_extractions:
             from sitespider.custom_extract import ExtractionRule
@@ -466,10 +488,43 @@ class SeoCrawler:
             self._js_renderer.close()
             self._js_renderer = None
 
+    def _ensure_js_renderer(self) -> None:
+        if self._js_renderer is not None or not self._need_playwright:
+            return
+        from sitespider.js_render import PlaywrightRenderer, playwright_available
+
+        if not playwright_available():
+            return
+        self._js_renderer = PlaywrightRenderer(
+            user_agent=self.user_agent,
+            timeout_ms=self.config.render_timeout_ms,
+            wait_until=self.config.render_wait_until,  # type: ignore[arg-type]
+            extra_wait_ms=self.config.render_extra_wait_ms,
+            capture_console=self.config.capture_console,
+        )
+
+    def _maybe_checkpoint(
+        self,
+        report: CrawlReport,
+        seen: set[str],
+        queue: deque,
+        crawled: int,
+        *,
+        completed: bool = False,
+    ) -> None:
+        if not self.crawldir:
+            return
+        interval = max(1, int(self.config.checkpoint_interval or 25))
+        if not completed and crawled % interval != 0:
+            return
+        from sitespider.crawl_checkpoint import save_checkpoint
+
+        save_checkpoint(self.crawldir, report=report, seen=seen, queue=queue, completed=completed)
+
     def crawl(self) -> CrawlReport:
         cfg = self.config
         workers = cfg.workers
-        if cfg.render_javascript:
+        if cfg.render_javascript or cfg.fetch_policy in ("js", "auto"):
             workers = min(workers, 2)
         report = CrawlReport(start_url=self.start_url, mode=self.mode, config=cfg)
         report.robots_info = {
@@ -495,28 +550,40 @@ class SeoCrawler:
         seen: set[str],
         queue: deque,
     ) -> CrawlReport:
+        crawled = 0
+        if self.crawldir and cfg.resume_crawl:
+            from sitespider.crawl_checkpoint import load_checkpoint, restore_from_checkpoint
+
+            ckpt = load_checkpoint(self.crawldir)
+            if ckpt:
+                report, seen, queue, crawled = restore_from_checkpoint(ckpt)
+                report.errors.append(f"resumed_from_checkpoint: {crawled} pages")
+
         start = self._initial_start()
-        if not start and not cfg.seed_urls:
+        if not report.pages and not start and not cfg.seed_urls:
             report.errors.append("找不到起始頁 index.html")
             return report
 
-        if cfg.seed_urls:
-            for u in cfg.seed_urls:
-                norm = self._canonical_page_url(u)
-                if norm not in seen:
-                    queue.append((u, 0, None, "list"))
-        elif start:
-            queue.append((start, 0, None, "start"))
+        if not queue and not report.pages:
+            if cfg.seed_urls:
+                for u in cfg.seed_urls:
+                    norm = self._canonical_page_url(u)
+                    if norm not in seen:
+                        queue.append((u, 0, None, "list"))
+            elif start:
+                queue.append((start, 0, None, "start"))
 
-        if cfg.use_sitemap and not cfg.list_mode:
-            sitemap_seeds = self._sitemap_seeds(report)
-            for u in sitemap_seeds:
-                norm = self._canonical_page_url(u)
-                if norm not in seen:
-                    queue.append((u, 0, None, "sitemap"))
+            if cfg.use_sitemap and not cfg.list_mode:
+                sitemap_seeds = self._sitemap_seeds(report)
+                for u in sitemap_seeds:
+                    norm = self._canonical_page_url(u)
+                    if norm not in seen:
+                        queue.append((u, 0, None, "sitemap"))
 
-        crawled = 0
-        total_estimate = max(cfg.max_pages, len(queue))
+        self.report = report
+        if not crawled:
+            crawled = len(report.pages)
+        total_estimate = max(cfg.max_pages, len(queue), crawled)
 
         while queue and crawled < cfg.max_pages:
             batch: list[tuple[str, int, str | None, str]] = []
@@ -582,6 +649,7 @@ class SeoCrawler:
                         crawled += 1
                         if self.on_progress:
                             self.on_progress(crawled, total_estimate, norm)
+                        self._maybe_checkpoint(report, seen, queue, crawled)
 
                     for link_url in new_links:
                         tnorm = self._canonical_page_url(link_url)
@@ -613,6 +681,7 @@ class SeoCrawler:
         if self._screenshot_dir:
             report.screenshot_dir = str(self._screenshot_dir)
         report.summary_issues()
+        self._maybe_checkpoint(report, seen, queue, crawled, completed=True)
         return report
 
     def _run_lighthouse(self, report: CrawlReport) -> None:
@@ -885,13 +954,20 @@ class SeoCrawler:
 
         page.content_hash = compute_content_hash_from_html(html_body)
         if self._extraction_rules:
-            from sitespider.custom_extract import apply_extractions
+            if self.config.adaptive_extractions:
+                from sitespider.adaptive_extract import apply_extractions_adaptive
 
-            page.custom_fields = apply_extractions(html_body, self._extraction_rules)
+                page.custom_fields = apply_extractions_adaptive(html_body, self._extraction_rules)
+            else:
+                from sitespider.custom_extract import apply_extractions
+
+                page.custom_fields = apply_extractions(html_body, self._extraction_rules)
         if self.config.check_images_on_fetch:
             self._check_resources_http(page, base_url)
 
     def _fetch_http(self, url: str, depth: int, t0: float) -> PageResult:
+        from sitespider.fetch_policy import resolve_fetch_mode, should_retry_with_js
+
         page = PageResult(
             url=url,
             status=0,
@@ -906,7 +982,34 @@ class SeoCrawler:
         )
         page.request_url = url
         try:
-            if self._js_renderer and _is_html_url(url):
+            if self.config.use_scrapling and _is_html_url(url):
+                from sitespider.optional_scrapling import fetch_html
+
+                ext = fetch_html(url, stealth=self.config.stealth_headers, timeout=self.config.timeout)
+                page.response_ms = (time.perf_counter() - t0) * 1000
+                if ext.error or not ext.html:
+                    page.status = 0
+                    page.issues.append(f"request_failed: {ext.error or 'scrapling empty'}")
+                else:
+                    page.status = ext.status or 200
+                    page.url = ext.final_url
+                    if ext.final_url != url:
+                        page.redirect_chain = [url, ext.final_url]
+                    self._apply_html_body(page, ext.html, ext.final_url)
+                _audit_page(page, self.config)
+                return page
+
+            fetch_mode = resolve_fetch_mode(
+                url,
+                policy=self.config.fetch_policy,
+                render_javascript=self.config.render_javascript,
+                auto_patterns=self.config.auto_js_path_patterns,
+            )
+            if fetch_mode == "js" and _is_html_url(url):
+                self._ensure_js_renderer()
+                if not self._js_renderer:
+                    fetch_mode = "http"
+            if self._js_renderer and fetch_mode == "js" and _is_html_url(url):
                 shot_path = None
                 if self._screenshot_dir:
                     safe = re.sub(r"[^a-zA-Z0-9._-]+", "_", urlparse(url).path)[:80] or "root"
@@ -929,18 +1032,62 @@ class SeoCrawler:
                 _audit_page(page, self.config)
                 return page
 
-            resp = self._http_session().get(url, timeout=self.config.timeout, allow_redirects=True)
-            page.status = resp.status_code
-            page.content_type = resp.headers.get("Content-Type")
-            page.response_ms = (time.perf_counter() - t0) * 1000
-            page.url = resp.url
-            if resp.history:
-                page.redirect_chain = [h.url for h in resp.history] + [resp.url]
-            elif resp.url != url:
-                page.redirect_chain = [url, resp.url]
-            if "text/html" in (page.content_type or ""):
-                page.response_headers = {k.lower(): v for k, v in resp.headers.items()}
-                self._apply_html_body(page, resp.text, resp.url)
+            cached = self._response_cache.get(url)
+            if cached and "text/html" in cached.headers.get("content-type", "text/html"):
+                page.status = cached.status
+                page.content_type = cached.headers.get("content-type", "text/html")
+                page.response_ms = (time.perf_counter() - t0) * 1000
+                page.url = cached.final_url
+                if cached.final_url != url:
+                    page.redirect_chain = [url, cached.final_url]
+                page.response_headers = dict(cached.headers)
+                self._apply_html_body(page, cached.text, cached.final_url)
+            else:
+                headers = {"Accept-Language": "zh-HK,zh;q=0.9,en;q=0.8"}
+                if self.config.stealth_headers:
+                    headers.update(
+                        {
+                            "User-Agent": self.user_agent,
+                            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                            "Sec-Fetch-Dest": "document",
+                            "Sec-Fetch-Mode": "navigate",
+                            "Upgrade-Insecure-Requests": "1",
+                        }
+                    )
+                resp = self._http_session().get(
+                    url, timeout=self.config.timeout, allow_redirects=True, headers=headers
+                )
+                page.status = resp.status_code
+                page.content_type = resp.headers.get("Content-Type")
+                page.response_ms = (time.perf_counter() - t0) * 1000
+                page.url = resp.url
+                if resp.history:
+                    page.redirect_chain = [h.url for h in resp.history] + [resp.url]
+                elif resp.url != url:
+                    page.redirect_chain = [url, resp.url]
+                if "text/html" in (page.content_type or ""):
+                    page.response_headers = {k.lower(): v for k, v in resp.headers.items()}
+                    self._apply_html_body(page, resp.text, resp.url)
+                    self._response_cache.put(
+                        url,
+                        final_url=resp.url,
+                        status=resp.status_code,
+                        headers=page.response_headers,
+                        text=resp.text,
+                    )
+                    if (
+                        self.config.fetch_policy == "auto"
+                        and not self.config.render_javascript
+                        and should_retry_with_js(resp.text, word_count=page.word_count)
+                    ):
+                        self._ensure_js_renderer()
+                        if self._js_renderer:
+                            rendered = self._js_renderer.fetch(url)
+                            if rendered.html and not rendered.error:
+                                page.rendered_with_js = True
+                                page.url = rendered.final_url
+                                self._apply_html_body(page, rendered.html, rendered.final_url)
+
         except requests.RequestException as e:
             page.status = 0
             page.issues.append(f"request_failed: {e}")

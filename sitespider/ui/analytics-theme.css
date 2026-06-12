@@ -1,20 +1,31 @@
 /* Washi Indigo — exported SEO analytics dashboard (self-contained, inlined on export) */
 
 :root {
-  --bg: #0b0d12;
-  --bg2: #10141c;
-  --card: #181f2b;
-  --card-hover: #1f2736;
-  --border: #2c3548;
-  --text: #f4f2ec;
-  --muted: #8b95a8;
-  --accent: #6ec9a0;
-  --accent-dim: rgba(110, 201, 160, 0.1);
-  --warn: #e8c468;
-  --warn-dim: rgba(232, 196, 104, 0.12);
-  --danger: #e88a8a;
-  --danger-dim: rgba(232, 138, 138, 0.12);
-  --info: #8baee8;
+  --bg: #10141c;
+  --bg2: #141a24;
+  --card: #1c2432;
+  --card-hover: #232d3d;
+  --border: #2e384a;
+  --text: #d8d6d0;
+  --muted: #7d8796;
+  --accent: #6aab8f;
+  --accent-dim: rgba(106, 171, 143, 0.1);
+  --link: #7ab89a;
+  --link-hover: #94c9ad;
+  --warn: #d4b86a;
+  --warn-dim: rgba(212, 184, 106, 0.11);
+  --danger: #d99a9a;
+  --danger-dim: rgba(217, 154, 154, 0.11);
+  --info: #9ab4d4;
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg2);
+  --color-surface: var(--card);
+  --color-surface-hover: var(--card-hover);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-muted: var(--accent-dim);
   --radius: 12px;
   --shadow: 0 2px 12px rgba(8, 12, 28, 0.42);
   --font-display: "Outfit", "Noto Sans TC", system-ui, sans-serif;
@@ -44,7 +55,7 @@ body::before {
 }
 
 a { color: var(--accent); text-decoration: none; transition: color 0.18s ease; }
-a:hover { color: #8eddb6; }
+a:hover { color: var(--link-hover, var(--accent)); }
 
 a:focus-visible,
 button:focus-visible,
@@ -67,7 +78,7 @@ select:focus-visible {
   gap: 0.5rem;
   padding: 0.5rem 1.5rem;
   border-bottom: 1px solid var(--border);
-  background: rgba(9, 9, 11, 0.5);
+  background: var(--bg2);
 }
 
 .analytics-toolbar a,
@@ -86,14 +97,14 @@ select:focus-visible {
 .analytics-toolbar a:hover,
 .analytics-toolbar button:hover {
   color: var(--text);
-  border-color: #3f3f46;
+  border-color: var(--border);
 }
 
 .topbar {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(9, 9, 11, 0.9);
+  background: var(--card);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
   padding: 0.85rem 1.5rem;
@@ -159,7 +170,7 @@ select:focus-visible {
 .nav a:hover,
 .nav button:hover {
   background: var(--card-hover);
-  border-color: #3f3f46;
+  border-color: var(--border);
   color: var(--text);
 }
 
@@ -183,12 +194,13 @@ select:focus-visible {
 
 .score-card {
   position: relative;
-  background: linear-gradient(180deg, #1c1c20 0%, var(--card) 100%);
+  background: linear-gradient(165deg, var(--bg2) 0%, var(--card) 72%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.5rem;
   box-shadow: var(--shadow);
   overflow: hidden;
+  color: var(--text);
 }
 
 .score-card::before {
@@ -230,6 +242,7 @@ select:focus-visible {
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.25rem;
+  color: var(--text);
 }
 
 .grade-badge {

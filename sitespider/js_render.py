@@ -26,7 +26,7 @@ class RenderedPage:
 
 def playwright_available() -> bool:
     try:
-        import playwright  # noqa: F401
+        from playwright.sync_api import sync_playwright  # noqa: F401
 
         return True
     except ImportError:
