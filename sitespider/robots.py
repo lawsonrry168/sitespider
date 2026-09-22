@@ -152,3 +152,14 @@ def meta_robots_noindex(content: str | None) -> bool:
         return False
     c = content.lower()
     return "noindex" in c or "none" in c
+
+
+def test_robots_url(robots_text: str, user_agent: str, url: str) -> dict:
+    """
+    以給定 robots.txt 文字與 User-Agent 測試 URL 是否允許抓取。
+    回傳 {allowed, user_agent, url}。
+    """
+    parser = RobotFileParser()
+    parser.parse((robots_text or "").splitlines())
+    allowed = parser.can_fetch(user_agent or "*", url)
+    return {"allowed": bool(allowed), "user_agent": user_agent, "url": url}

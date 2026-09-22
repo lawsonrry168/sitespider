@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass, field
-from typing import Literal
+from types import SimpleNamespace
+from typing import Any, Literal
 
 WaitUntil = Literal["commit", "domcontentloaded", "load", "networkidle"]
 
@@ -22,6 +23,8 @@ class RenderedPage:
     html: str
     error: str | None = None
     console_messages: list[str] = field(default_factory=list)
+    broken_fragments: list[str] = field(default_factory=list)
+    a11y_violations: list[dict] = field(default_factory=list)
 
 
 def playwright_available() -> bool:
@@ -44,14 +47,33 @@ class PlaywrightRenderer:
         wait_until: WaitUntil = "domcontentloaded",
         extra_wait_ms: int = 500,
         capture_console: bool = True,
+        cookies: list[dict[str, Any]] | None = None,
+        js_before: str | None = None,
+        js_after: str | None = None,
+        a11y_audit: bool = False,
+        check_fragments: bool = True,
     ):
         self.user_agent = user_agent
         self.timeout_ms = timeout_ms
         self.wait_until = wait_until
         self.extra_wait_ms = extra_wait_ms
         self.capture_console = capture_console
+        self.cookies = cookies
+        self.js_before = js_before
+        self.js_after = js_after
+        self.a11y_audit = a11y_audit
+        self.check_fragments = check_fragments
         self._local = threading.local()
         self._install_lock = threading.Lock()
+
+    def apply_cookies(self, context: Any, cookies: list[dict[str, Any]] | None = None) -> None:
+        """將 cookie 清單注入 Playwright BrowserContext。"""
+        batch = cookies if cookies is not None else self.cookies
+        if not batch:
+            return
+        from sitespider.cookie_store import apply_cookies_to_context
+
+        apply_cookies_to_context(context, batch)
 
     def _ensure_browser(self) -> None:
         if getattr(self._local, "ready", False):
@@ -67,6 +89,9 @@ class PlaywrightRenderer:
                 user_agent=self.user_agent,
                 ignore_https_errors=True,
             )
+            if self.cookies and not getattr(self._local, "cookies_applied", False):
+                self.apply_cookies(self._local.context)
+                self._local.cookies_applied = True
             self._local.ready = True
 
     def fetch(
@@ -85,11 +110,16 @@ class PlaywrightRenderer:
 
         page.on("console", _on_console)
         try:
+            if self.js_before:
+                page.goto("about:blank")
+                page.evaluate(self.js_before)
             resp = page.goto(
                 url,
                 wait_until=self.wait_until,
                 timeout=self.timeout_ms,
             )
+            if self.js_after:
+                page.evaluate(self.js_after)
             if self.extra_wait_ms > 0:
                 page.wait_for_timeout(self.extra_wait_ms)
             status = resp.status if resp else 200
@@ -98,14 +128,44 @@ class PlaywrightRenderer:
 
                 Path(screenshot_path).parent.mkdir(parents=True, exist_ok=True)
                 page.screenshot(path=screenshot_path, full_page=True)
+
+            broken_fragments: list[str] = []
+            if self.check_fragments:
+                from sitespider.fragment_check import check_fragments_on_page
+
+                raw_hrefs = page.eval_on_selector_all(
+                    "a[href]",
+                    "els => els.map(e => e.getAttribute('href'))",
+                )
+                link_objs = [
+                    SimpleNamespace(href=h)
+                    for h in (raw_hrefs or [])
+                    if h
+                ]
+                broken_fragments = check_fragments_on_page(page, page.url, link_objs)
+
+            a11y_violations: list[dict] = []
+            if self.a11y_audit:
+                from sitespider.a11y_audit import run_a11y_on_page
+
+                a11y_violations = run_a11y_on_page(page, page.url)
+
             return RenderedPage(
                 status=status,
                 final_url=page.url,
                 html=page.content(),
                 console_messages=console[:50],
+                broken_fragments=broken_fragments,
+                a11y_violations=a11y_violations,
             )
         except Exception as e:
-            return RenderedPage(status=0, final_url=url, html="", error=str(e), console_messages=console)
+            return RenderedPage(
+                status=0,
+                final_url=url,
+                html="",
+                error=str(e),
+                console_messages=console,
+            )
         finally:
             page.close()
 
