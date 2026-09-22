@@ -220,6 +220,106 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="使用 Scrapling fetcher（需 pip install 'sitespider[scrapling]'）",
     )
+    parser.add_argument(
+        "--user-agent-preset",
+        default=None,
+        metavar="PRESET",
+        help="User-Agent 預設（googlebot-desktop、chrome-mobile 等）",
+    )
+    parser.add_argument(
+        "--no-near-duplicates",
+        action="store_true",
+        help="關閉近重複內容稽核",
+    )
+    parser.add_argument(
+        "--near-duplicate-threshold",
+        type=float,
+        default=None,
+        metavar="SCORE",
+        help="近重複相似度門檻（預設 0.90）",
+    )
+    parser.add_argument(
+        "--no-security-headers",
+        action="store_true",
+        help="關閉 HTTP 安全標頭稽核",
+    )
+    parser.add_argument(
+        "--no-readability",
+        action="store_true",
+        help="關閉可讀性稽核",
+    )
+    parser.add_argument(
+        "--no-keyword-density",
+        action="store_true",
+        help="關閉關鍵字密度稽核",
+    )
+    parser.add_argument(
+        "--no-tracking-audit",
+        action="store_true",
+        help="關閉追蹤標籤稽核",
+    )
+    parser.add_argument(
+        "--no-locale-tracking-compare",
+        action="store_true",
+        help="關閉 en/zh 追蹤比對",
+    )
+    parser.add_argument("--ga4-property-id", default=None, help="GA4 資源 ID（合併流量）")
+    parser.add_argument(
+        "--ga4-credentials",
+        type=Path,
+        default=None,
+        help="GA4 服務帳戶 JSON 憑證",
+    )
+    parser.add_argument(
+        "--ga4-date-range",
+        default=None,
+        metavar="START,END",
+        help="GA4 日期區間，例如 30daysAgo,today",
+    )
+    parser.add_argument("--backlink-provider", default=None, choices=("ahrefs", "moz"))
+    parser.add_argument("--backlink-api-key", default=None)
+    parser.add_argument("--backlink-max-urls", type=int, default=None)
+    parser.add_argument("--crux-api-key", default=None, help="Chrome UX Report API key")
+    parser.add_argument("--crux-max-origins", type=int, default=None)
+    parser.add_argument("--audit-amp", action="store_true", help="AMP 頁面驗證")
+    parser.add_argument("--a11y-audit", action="store_true", help="Playwright axe-core 無障礙")
+    parser.add_argument("--grammar-check", action="store_true", help="LanguageTool 文法稽核")
+    parser.add_argument("--grammar-api-url", default=None, help="LanguageTool API URL")
+    parser.add_argument("--grammar-max-pages", type=int, default=None)
+    parser.add_argument("--export-looker", action="store_true", help="匯出 looker/ JSON bundle")
+    parser.add_argument(
+        "--no-directory-tree",
+        action="store_true",
+        help="不匯出 directory_tree.html",
+    )
+    parser.add_argument("--export-sheets", action="store_true", help="匯出至 Google Sheets")
+    parser.add_argument("--sheets-id", default=None, help="Google Sheets spreadsheet ID")
+    parser.add_argument(
+        "--sheets-credentials",
+        type=Path,
+        default=None,
+        help="Sheets 服務帳戶 JSON",
+    )
+    parser.add_argument("--image-sitemap", action="store_true", help="產生 image sitemap XML")
+    parser.add_argument("--cookies-path", type=Path, default=None, help="Playwright cookies JSON")
+    parser.add_argument("--custom-js-before", default=None, help="Playwright 載入前 JS")
+    parser.add_argument("--custom-js-after", default=None, help="Playwright 載入後 JS")
+    parser.add_argument("--auth-login-url", default=None, help="表單登入 URL")
+    parser.add_argument("--auth-username", default=None)
+    parser.add_argument(
+        "--auth-password-env",
+        default=None,
+        metavar="ENV",
+        help="登入密碼環境變數名稱",
+    )
+    parser.add_argument("--auth-username-selector", default=None)
+    parser.add_argument("--auth-password-selector", default=None)
+    parser.add_argument("--auth-submit-selector", default=None)
+    parser.add_argument(
+        "--no-check-fragments",
+        action="store_true",
+        help="不檢查頁內 #anchor fragment",
+    )
     return parser
 
 
@@ -420,6 +520,14 @@ def main(argv: list[str] | None = None) -> int:
 
     prefixes = getattr(args, "sitemap_path_prefixes", ())
     exclude = tuple(args.exclude_path or ()) or getattr(args, "exclude_path_prefixes", ())
+
+    ga4_date_range: tuple[str, str] = ("30daysAgo", "today")
+    if getattr(args, "ga4_date_range", None):
+        parts = str(args.ga4_date_range).split(",", 1)
+        start = parts[0].strip() or "30daysAgo"
+        end = parts[1].strip() if len(parts) > 1 else "today"
+        ga4_date_range = (start, end)
+
     config = CrawlConfig(
         max_pages=args.max_pages,
         max_depth=args.max_depth,
@@ -459,6 +567,63 @@ def main(argv: list[str] | None = None) -> int:
         adaptive_extractions=bool(getattr(args, "adaptive_extract", False)),
         stealth_headers=bool(getattr(args, "stealth_headers", False)),
         use_scrapling=bool(getattr(args, "scrapling", False)),
+        audit_near_duplicates=not getattr(args, "no_near_duplicates", False),
+        near_duplicate_threshold=(
+            args.near_duplicate_threshold
+            if getattr(args, "near_duplicate_threshold", None) is not None
+            else 0.90
+        ),
+        audit_security_headers=not getattr(args, "no_security_headers", False),
+        audit_readability=not getattr(args, "no_readability", False),
+        audit_keyword_density=not getattr(args, "no_keyword_density", False),
+        audit_tracking=not getattr(args, "no_tracking_audit", False),
+        locale_tracking_compare=not getattr(args, "no_locale_tracking_compare", False),
+        ga4_property_id=getattr(args, "ga4_property_id", None),
+        ga4_credentials=(
+            str(args.ga4_credentials.resolve())
+            if getattr(args, "ga4_credentials", None)
+            else None
+        ),
+        ga4_date_range=ga4_date_range,
+        backlink_provider=getattr(args, "backlink_provider", None),
+        backlink_api_key=getattr(args, "backlink_api_key", None),
+        backlink_max_urls=(
+            args.backlink_max_urls if getattr(args, "backlink_max_urls", None) is not None else 200
+        ),
+        crux_api_key=getattr(args, "crux_api_key", None),
+        crux_max_origins=(
+            args.crux_max_origins if getattr(args, "crux_max_origins", None) is not None else 5
+        ),
+        audit_amp=bool(getattr(args, "audit_amp", False)),
+        a11y_audit=bool(getattr(args, "a11y_audit", False)),
+        grammar_check=bool(getattr(args, "grammar_check", False)),
+        grammar_api_url=getattr(args, "grammar_api_url", None),
+        grammar_max_pages=(
+            args.grammar_max_pages if getattr(args, "grammar_max_pages", None) is not None else 50
+        ),
+        export_looker=bool(getattr(args, "export_looker", False)),
+        export_directory_tree=not getattr(args, "no_directory_tree", False),
+        export_sheets=bool(getattr(args, "export_sheets", False)),
+        sheets_id=getattr(args, "sheets_id", None),
+        sheets_credentials=(
+            str(args.sheets_credentials.resolve())
+            if getattr(args, "sheets_credentials", None)
+            else None
+        ),
+        image_sitemap=bool(getattr(args, "image_sitemap", False)),
+        user_agent_preset=getattr(args, "user_agent_preset", None),
+        cookies_path=(
+            str(args.cookies_path.resolve()) if getattr(args, "cookies_path", None) else None
+        ),
+        custom_js_before=getattr(args, "custom_js_before", None),
+        custom_js_after=getattr(args, "custom_js_after", None),
+        auth_login_url=getattr(args, "auth_login_url", None),
+        auth_username=getattr(args, "auth_username", None),
+        auth_password_env=getattr(args, "auth_password_env", None),
+        auth_username_selector=getattr(args, "auth_username_selector", None),
+        auth_password_selector=getattr(args, "auth_password_selector", None),
+        auth_submit_selector=getattr(args, "auth_submit_selector", None),
+        check_fragments=not getattr(args, "no_check_fragments", False),
     )
 
     if getattr(args, "gsc_inspect_max", None):
@@ -532,11 +697,18 @@ def main(argv: list[str] | None = None) -> int:
         print(f"checkpoint: {ck_dir}" + (" · 恢復" if config.resume_crawl else ""))
     print("爬取中…")
 
+    user_agent = "SiteSpider/1.0 (+https://github.com/sitespider/seo-crawl)"
+    if config.user_agent_preset:
+        from sitespider.user_agent_presets import resolve_user_agent
+
+        user_agent = resolve_user_agent(config.user_agent_preset)
+
     crawler = SeoCrawler(
         start_url,
         mode=args.mode,
         site_root=site_root,
         config=config,
+        user_agent=user_agent,
         lighthouse_out=out_dir / "lighthouse",
         crawldir=ck_dir,
         on_progress=lambda d, t, u: print(f"  [{d}/{t}] {Path(u).name or u}", end="\r"),

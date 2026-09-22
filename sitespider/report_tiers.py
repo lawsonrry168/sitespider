@@ -188,6 +188,10 @@ def export_standard_tier(report: CrawlReport, out_dir: Path, opts: ExportOptions
     if export_sitemap_xml(report, out_dir / "sitemap_generated.xml") > 0:
         written.append("sitemap_generated.xml")
 
+    from sitespider.roadmap_runner import export_roadmap_reports
+
+    written.extend(export_roadmap_reports(report, out_dir, config=report.config))
+
     written.extend(
         [
             "geo.csv",
@@ -251,6 +255,17 @@ def export_pro_tier(report: CrawlReport, out_dir: Path, opts: ExportOptions) -> 
 
         write_xlsx(report, out_dir / "crawl-report.xlsx")
         written.append("crawl-report.xlsx")
+
+    from sitespider.roadmap_runner import export_roadmap_reports
+
+    written.extend(export_roadmap_reports(report, out_dir, config=report.config))
+
+    cfg = report.config
+    if cfg.image_sitemap:
+        from sitespider.sitemap_export import export_image_sitemap_xml
+
+        if export_image_sitemap_xml(report, out_dir / "image_sitemap.xml") > 0:
+            written.append("image_sitemap.xml")
 
     if opts.client_report:
         from sitespider.client_report import write_client_report

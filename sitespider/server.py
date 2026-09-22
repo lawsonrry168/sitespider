@@ -1485,6 +1485,17 @@ document.documentElement.setAttribute("data-theme",localStorage.getItem("sitespi
             except Exception as e:
                 return self._send_json({"ok": False, "error": str(e)[:240]})
 
+        if path == "/api/robots/test":
+            from sitespider.robots import test_robots_url
+
+            qs = parse_qs(urlparse(self.path).query)
+            robots_text = (qs.get("robots_text") or [""])[0]
+            user_agent = (qs.get("user_agent") or ["*"])[0]
+            url = (qs.get("url") or [""])[0].strip()
+            if not url:
+                return self._send_json({"error": "缺少 url"}, 400)
+            return self._send_json(test_robots_url(robots_text, user_agent, url))
+
         if path == "/api/demo":
             from sitespider.demo_info import demo_info_json
 
@@ -1501,6 +1512,22 @@ document.documentElement.setAttribute("data-theme",localStorage.getItem("sitespi
 
     def do_POST(self) -> None:
         api_path = urlparse(self.path).path
+
+        if api_path == "/api/robots/test":
+            from sitespider.robots import test_robots_url
+
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length).decode("utf-8")
+            try:
+                payload = json.loads(body) if body else {}
+            except json.JSONDecodeError:
+                return self._send_json({"error": "invalid json"}, 400)
+            robots_text = str(payload.get("robots_text") or "")
+            user_agent = str(payload.get("user_agent") or "*")
+            url = str(payload.get("url") or "").strip()
+            if not url:
+                return self._send_json({"error": "缺少 url"}, 400)
+            return self._send_json(test_robots_url(robots_text, user_agent, url))
 
         if api_path == "/api/ai/settings":
             from sitespider.ai_settings_store import set_tenant_ai_settings

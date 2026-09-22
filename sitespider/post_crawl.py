@@ -256,6 +256,11 @@ def run_post_crawl_audits(
         _audit_llms_txt(report)
         _maybe_run_gsc_inspection(report, config)
 
+    if config is not None:
+        from sitespider.roadmap_runner import run_roadmap_audits
+
+        run_roadmap_audits(report, config=config)
+
 
 def _maybe_run_gsc_inspection(report: CrawlReport, config) -> None:
     if not config or getattr(config, "gsc_inspect_max", 0) <= 0:

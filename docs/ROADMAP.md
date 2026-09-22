@@ -1,6 +1,6 @@
 # SiteSpider 產品路線圖與進度
 
-最後更新：2026-06（程式標記 **v1.24.0**）。
+最後更新：2026-09（程式標記 **v1.25.0**）。
 
 ## 總體進度（顧問交付視角）
 
@@ -17,9 +17,21 @@
 | Web 控制台（`sitespider --ui`） | **95%** | 比對、排程 wizard、toast、方案 gating |
 | SaaS / Stripe | **85%** | 方案防篡改、伺服器端 branding、多站儀表板 |
 | GSC Rich Results API | **70%** | 可選；需客戶 Search Console 授權 |
-| 與 SF 桌面完全等價 | **~50%** | 無即時 SERP 抓取 |
+| 與 SF 桌面完全等價 | **~55%** | 無即時 SERP；roadmap Phase 1–4 已落地 |
+| FEATURE_ROADMAP Phase 1–4 | **~90%** | 見根目錄 `FEATURE_ROADMAP.md`（Honest status） |
 
-**一句話**：已可作為 **Screaming Frog 的 CLI/顧問替代品（站內爬取 + 報告 + 優先順序）**；SaaS 與 Agency 多站儀表板已落地。
+**一句話**：已可作為 **Screaming Frog 的 CLI/顧問替代品（站內爬取 + 報告 + 優先順序）**；SaaS 與 Agency 多站儀表板已落地；v1.25 補齊近似重複、追蹤 footprint、GA4/CrUX/Sheets 等選配整合。
+
+---
+
+## v1.25 新增（2026-09）
+
+- [x] **FEATURE_ROADMAP Phase 1–4**：`roadmap_runner` 串接近似重複、安全標頭、標題層級、片段錨點、追蹤 footprint、可讀性、關鍵字密度、a11y、CrUX、GA4、Sheets、Looker JSON、圖片 sitemap 等
+- [x] **片段錨點修復**：Playwright 傳入真實 `a[href]`；HTTP 模式 BeautifulSoup fallback
+- [x] **Google Sheets**：`--export-sheets` / `--sheets-id` 接線（選配 `sitespider[sheets]`）
+- [x] **robots 測試 API**：`GET/POST /api/robots/test`（非完整編輯器 UI）
+
+詳見 `FEATURE_ROADMAP.md`。
 
 ---
 
@@ -46,8 +58,8 @@
 
 | 項目 | 狀態 |
 |------|------|
-| 程式版本 | **1.24.0**（`pyproject.toml`） |
-| 待辦 | 即時 SERP、Playwright E2E、index 離線 Chart 內嵌 |
+| 程式版本 | **1.25.0**（`pyproject.toml`） |
+| 待辦 | 即時 SERP、Playwright E2E、index 離線 Chart 內嵌、GTM 容器匯出、robots 編輯 UI |
 
 ---
 

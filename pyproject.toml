@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sitespider"
-version = "1.24.0"
+version = "1.25.0"
 description = "Professional SEO site crawler — link structure, on-page SEO, robots, sitemap, Lighthouse"
 readme = "README.md"
 license = { text = "MIT" }
@@ -40,6 +40,8 @@ gsc = [
   "google-auth>=2.23.0",
   "google-auth-oauthlib>=1.2.0",
 ]
+analytics = ["google-analytics-data>=0.18.0", "google-auth>=2.23.0"]
+sheets = ["google-api-python-client>=2.100.0", "google-auth>=2.23.0"]
 dev = ["pytest>=7.0", "openpyxl>=3.1.0", "PyYAML>=6.0", "pyspellchecker>=0.8.0"]
 desktop = [
   "pyinstaller>=6.3",
@@ -54,6 +56,7 @@ all = [
   "pyspellchecker>=0.8.0",
   "google-api-python-client>=2.100.0",
   "google-auth>=2.23.0",
+  "google-analytics-data>=0.18.0",
 ]
 
 [project.scripts]

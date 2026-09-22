@@ -679,6 +679,85 @@ def export_csv_console(report: CrawlReport, path: Path) -> None:
             )
 
 
+def export_csv_near_duplicates(report: CrawlReport, path: Path) -> None:
+    pairs = getattr(report, "near_duplicate_pairs", None) or []
+    fields = ["url_a", "url_b", "score"]
+    with path.open("w", encoding="utf-8-sig", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fields)
+        w.writeheader()
+        w.writerows(pairs)
+
+
+def export_csv_readability(report: CrawlReport, path: Path) -> None:
+    fields = ["url", "readability_ease", "readability_grade", "issues"]
+    with path.open("w", encoding="utf-8-sig", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fields)
+        w.writeheader()
+        for url, page in sorted(report.pages.items()):
+            w.writerow(
+                {
+                    "url": url,
+                    "readability_ease": getattr(page, "readability_ease", ""),
+                    "readability_grade": getattr(page, "readability_grade", ""),
+                    "issues": ";".join(i for i in page.issues if i == "low_readability"),
+                }
+            )
+
+
+def export_csv_accessibility(report: CrawlReport, path: Path) -> None:
+    from sitespider.a11y_audit import export_a11y_csv
+
+    export_a11y_csv(report, path)
+
+
+def export_csv_analytics(report: CrawlReport, path: Path) -> None:
+    fields = ["url", "ga4_sessions", "ga4_pageviews", "ga4_bounce_rate"]
+    with path.open("w", encoding="utf-8-sig", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fields)
+        w.writeheader()
+        for url, page in sorted(report.pages.items()):
+            if getattr(page, "ga4_sessions", None) is None:
+                continue
+            w.writerow(
+                {
+                    "url": url,
+                    "ga4_sessions": page.ga4_sessions,
+                    "ga4_pageviews": getattr(page, "ga4_pageviews", ""),
+                    "ga4_bounce_rate": getattr(page, "ga4_bounce_rate", ""),
+                }
+            )
+
+
+def export_csv_backlinks(report: CrawlReport, path: Path) -> None:
+    fields = ["url", "backlinks_count", "referring_domains", "domain_rating"]
+    with path.open("w", encoding="utf-8-sig", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fields)
+        w.writeheader()
+        for url, page in sorted(report.pages.items()):
+            if getattr(page, "backlinks_count", None) is None:
+                continue
+            w.writerow(
+                {
+                    "url": url,
+                    "backlinks_count": page.backlinks_count,
+                    "referring_domains": getattr(page, "referring_domains", ""),
+                    "domain_rating": getattr(page, "domain_rating", ""),
+                }
+            )
+
+
+def export_csv_crux(report: CrawlReport, path: Path) -> None:
+    from sitespider.crux_api import export_crux_csv
+
+    export_crux_csv(report, path)
+
+
+def export_csv_grammar(report: CrawlReport, path: Path) -> None:
+    from sitespider.grammar_check import export_grammar_csv
+
+    export_grammar_csv(report, path)
+
+
 def export_all_sf_reports(report: CrawlReport, out_dir: Path) -> list[str]:
     """匯出 SF 對齊分頁 CSV，回傳檔名列表。"""
     mapping = {

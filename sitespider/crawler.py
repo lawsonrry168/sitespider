@@ -113,6 +113,22 @@ class PageResult:
     console_messages: list[str] = field(default_factory=list)
     screenshot_path: str | None = None
     custom_fields: dict[str, str] = field(default_factory=dict)
+    body_text: str = ""
+    heading_sequence: list[int] = field(default_factory=list)
+    form_actions: list[str] = field(default_factory=list)
+    broken_fragments: list[str] = field(default_factory=list)
+    raw_html: str = ""
+    readability_ease: float | None = None
+    readability_grade: float | None = None
+    ga4_sessions: int | None = None
+    ga4_pageviews: int | None = None
+    ga4_bounce_rate: float | None = None
+    backlinks_count: int | None = None
+    referring_domains: int | None = None
+    domain_rating: float | None = None
+    security_score: int | None = None
+    keyword_density: list = field(default_factory=list)
+    tracking: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -161,6 +177,43 @@ class CrawlConfig:
     adaptive_extractions: bool = False
     stealth_headers: bool = False
     use_scrapling: bool = False
+    audit_near_duplicates: bool = True
+    near_duplicate_threshold: float = 0.90
+    audit_security_headers: bool = True
+    audit_readability: bool = True
+    audit_keyword_density: bool = True
+    audit_tracking: bool = True
+    locale_tracking_compare: bool = True
+    ga4_property_id: str | None = None
+    ga4_credentials: str | None = None
+    ga4_date_range: tuple[str, str] = ("30daysAgo", "today")
+    backlink_provider: str | None = None
+    backlink_api_key: str | None = None
+    backlink_max_urls: int = 200
+    crux_api_key: str | None = None
+    crux_max_origins: int = 5
+    audit_amp: bool = False
+    a11y_audit: bool = False
+    grammar_check: bool = False
+    grammar_api_url: str | None = None
+    grammar_max_pages: int = 50
+    export_looker: bool = False
+    export_directory_tree: bool = True
+    export_sheets: bool = False
+    sheets_id: str | None = None
+    sheets_credentials: str | None = None
+    image_sitemap: bool = False
+    user_agent_preset: str | None = None
+    cookies_path: str | None = None
+    custom_js_before: str | None = None
+    custom_js_after: str | None = None
+    auth_login_url: str | None = None
+    auth_username: str | None = None
+    auth_password_env: str | None = None
+    auth_username_selector: str | None = None
+    auth_password_selector: str | None = None
+    auth_submit_selector: str | None = None
+    check_fragments: bool = True
 
 
 @dataclass
@@ -419,6 +472,10 @@ class SeoCrawler:
         self.site_root = (site_root or Path.cwd()).resolve()
         self.config = config or CrawlConfig()
         self.user_agent = user_agent
+        if self.config.user_agent_preset:
+            from sitespider.user_agent_presets import resolve_user_agent
+
+            self.user_agent = resolve_user_agent(self.config.user_agent_preset)
         self.on_progress = on_progress
         self.lighthouse_out = lighthouse_out
         self.crawldir = crawldir
@@ -426,10 +483,10 @@ class SeoCrawler:
             self.crawldir = Path(self.config.crawldir)
         self.report: CrawlReport | None = None
         self._screenshot_dir = None
-        if config.save_screenshots and lighthouse_out:
+        if config and config.save_screenshots and lighthouse_out:
             self._screenshot_dir = lighthouse_out.parent / "screenshots"
         self.session = requests.Session()
-        self.session.headers["User-Agent"] = user_agent
+        self.session.headers["User-Agent"] = self.user_agent
         self._session_local = threading.local()
         self._checked_urls: dict[str, int | None] = {}
         self._check_lock = threading.Lock()
@@ -488,6 +545,37 @@ class SeoCrawler:
             self._js_renderer.close()
             self._js_renderer = None
 
+    def _load_playwright_cookies(self) -> list | None:
+        path = self.config.cookies_path
+        if not path:
+            return None
+        from sitespider.cookie_store import load_cookies
+
+        return load_cookies(path)
+
+    def _apply_render_extras(self, page: PageResult, rendered) -> None:
+        """合併 Playwright 渲染的 fragment / a11y 結果。"""
+        if not rendered:
+            return
+        broken = list(getattr(rendered, "broken_fragments", None) or [])
+        if broken:
+            page.broken_fragments = broken
+            if self.report is not None:
+                from sitespider.fragment_check import mark_broken_fragments
+
+                mark_broken_fragments(
+                    self.report, self._canonical_page_url(page.url), broken
+                )
+            elif "broken_fragment" not in page.issues:
+                page.issues.append("broken_fragment")
+        violations = getattr(rendered, "a11y_violations", None) or []
+        if violations and self.report is not None:
+            from sitespider.a11y_audit import apply_a11y_results
+
+            apply_a11y_results(
+                self.report, self._canonical_page_url(page.url), violations
+            )
+
     def _ensure_js_renderer(self) -> None:
         if self._js_renderer is not None or not self._need_playwright:
             return
@@ -495,13 +583,44 @@ class SeoCrawler:
 
         if not playwright_available():
             return
+        cfg = self.config
         self._js_renderer = PlaywrightRenderer(
             user_agent=self.user_agent,
-            timeout_ms=self.config.render_timeout_ms,
-            wait_until=self.config.render_wait_until,  # type: ignore[arg-type]
-            extra_wait_ms=self.config.render_extra_wait_ms,
-            capture_console=self.config.capture_console,
+            timeout_ms=cfg.render_timeout_ms,
+            wait_until=cfg.render_wait_until,  # type: ignore[arg-type]
+            extra_wait_ms=cfg.render_extra_wait_ms,
+            capture_console=cfg.capture_console,
+            cookies=self._load_playwright_cookies(),
+            js_before=cfg.custom_js_before,
+            js_after=cfg.custom_js_after,
+            a11y_audit=cfg.a11y_audit,
+            check_fragments=cfg.check_fragments,
         )
+        if (
+            cfg.auth_login_url
+            and cfg.auth_username
+            and cfg.auth_password_env
+            and cfg.auth_username_selector
+            and cfg.auth_password_selector
+            and cfg.auth_submit_selector
+        ):
+            import os
+
+            from sitespider.form_auth import login_with_form
+
+            password = os.environ.get(cfg.auth_password_env, "")
+            if password:
+                self._js_renderer._ensure_browser()
+                ctx = self._js_renderer._local.context
+                login_with_form(
+                    ctx,
+                    cfg.auth_login_url,
+                    cfg.auth_username,
+                    password,
+                    cfg.auth_username_selector,
+                    cfg.auth_password_selector,
+                    cfg.auth_submit_selector,
+                )
 
     def _maybe_checkpoint(
         self,
@@ -1029,6 +1148,7 @@ class SeoCrawler:
                     if shot_path:
                         page.screenshot_path = shot_path
                     self._apply_html_body(page, rendered.html, rendered.final_url)
+                    self._apply_render_extras(page, rendered)
                 _audit_page(page, self.config)
                 return page
 
@@ -1087,6 +1207,7 @@ class SeoCrawler:
                                 page.rendered_with_js = True
                                 page.url = rendered.final_url
                                 self._apply_html_body(page, rendered.html, rendered.final_url)
+                                self._apply_render_extras(page, rendered)
 
         except requests.RequestException as e:
             page.status = 0
@@ -1096,6 +1217,16 @@ class SeoCrawler:
 
     def _parse_html(self, page: PageResult, html: str, base: str) -> None:
         soup = BeautifulSoup(html, "lxml")
+        page.raw_html = html
+        text_soup = BeautifulSoup(html, "lxml")
+        for tag in text_soup(["script", "style", "noscript"]):
+            tag.decompose()
+        page.body_text = text_soup.get_text(separator=" ", strip=True)
+        from sitespider.tracking_audit import audit_html_tracking, apply_page_tracking
+
+        footprint = audit_html_tracking(html)
+        page.tracking = dict(footprint)
+        apply_page_tracking(page, footprint)
         html_tag = soup.find("html")
         if html_tag and html_tag.get("lang"):
             page.html_lang = str(html_tag["lang"]).strip()
@@ -1119,7 +1250,20 @@ class SeoCrawler:
         page.h1 = [_strip_text(h) for h in soup.find_all("h1")]
         page.h2 = [_strip_text(h) for h in soup.find_all("h2")]
         page.h3 = [_strip_text(h) for h in soup.find_all("h3")]
+        page.heading_sequence = []
+        for h in soup.find_all(re.compile(r"^h[1-6]$", re.I)):
+            try:
+                page.heading_sequence.append(int(h.name[1]))
+            except (TypeError, ValueError, IndexError):
+                continue
         page.word_count = _word_count(BeautifulSoup(html, "lxml"))
+        page.form_actions = []
+        for form in soup.find_all("form"):
+            action = (form.get("action") or "").strip()
+            if not action:
+                continue
+            resolved = _normalize_url(action, base) or action
+            page.form_actions.append(resolved)
 
         og_t = soup.find("meta", attrs={"property": re.compile(r"^og:title$", re.I)})
         if og_t and og_t.get("content"):
@@ -1260,6 +1404,15 @@ class SeoCrawler:
                         loading=loading,
                     )
                 )
+
+        if self.config.check_fragments:
+            from sitespider.fragment_check import check_fragments_in_soup
+
+            broken = check_fragments_in_soup(soup, page.url, page.links)
+            if broken:
+                page.broken_fragments = broken
+                if "broken_fragment" not in page.issues:
+                    page.issues.append("broken_fragment")
 
     def _check_resources_file(self, page: PageResult, page_dir: Path) -> None:
         for img in page.images:
